@@ -1,0 +1,16 @@
+spring:
+  datasource:
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 10
+  jpa:
+    open-in-view: false
+error:
+  handling:
+    http-status-in-json-response: true
+    default-error-code-strategy: ALL_CAPS
+    search-super-class-hierarchy: true
+    add-path-to-error: true
+
+springdoc:
+  pathsToMatch: /, /api/**

@@ -1,0 +1,25 @@
+spring:
+  config:
+    import: optional:file:../.env[.properties]
+  flyway:
+    clean-disabled: true
+    enabled: true
+  datasource:
+    url: ${LMEE_POSTGRES_DB}
+    username: ${LMEE_POSTGRES_USER}
+    password: ${LMEE_POSTGRES_PASSWORD}
+
+error:
+  handling:
+    exception-logging: MESSAGE_ONLY
+    full-stacktrace-http-statuses: 5xx
+    log-levels:
+      400: DEBUG
+      404: DEBUG
+      409: INFO
+      422: INFO
+      401: WARN
+      403: WARN
+      5xx: ERROR
+springdoc:
+  pathsToMatch: /, /api/**

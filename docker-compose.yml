@@ -1,0 +1,9 @@
+services:
+  postgres:
+    image: postgres:18.0
+    environment:
+    - POSTGRES_DB=${LMEE_POSTGRES_DB}
+    - POSTGRES_USER=${LMEE_POSTGRES_USER}
+    - POSTGRES_PASSWORD=${LMEE_POSTGRES_PASSWORD}
+    ports:
+    - "5433:5432"
