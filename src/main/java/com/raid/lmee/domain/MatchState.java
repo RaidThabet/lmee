@@ -27,11 +27,11 @@ public class MatchState {
     @Enumerated(EnumType.STRING)
     private MatchStatus status;
 
-    @Column(nullable = false)
-    private int homeScore;
+    @Column
+    private Integer homeScore;
 
-    @Column(nullable = false)
-    private int awayScore;
+    @Column
+    private Integer awayScore;
 
     @Column(nullable = false)
     private int homeYellows;
