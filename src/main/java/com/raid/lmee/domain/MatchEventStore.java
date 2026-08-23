@@ -30,18 +30,18 @@ public class MatchEventStore {
     @UuidGenerator
     private UUID id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     @Enumerated(EnumType.STRING)
     private MatchEventType eventType;
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private OffsetDateTime occurredAt;
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private int sequenceNumber;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(nullable = false, columnDefinition = "jsonb")
+    @Column(nullable = false, columnDefinition = "jsonb", updatable = false)
     private String payload;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -51,9 +51,5 @@ public class MatchEventStore {
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private OffsetDateTime dateCreated;
-
-    @LastModifiedDate
-    @Column(nullable = false)
-    private OffsetDateTime lastUpdated;
 
 }
