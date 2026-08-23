@@ -10,7 +10,7 @@ spring:
     password: ${LMEE_POSTGRES_PASSWORD}
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
   docker:
     compose:
       lifecycle-management: start_and_stop
