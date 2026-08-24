@@ -3,6 +3,7 @@ package com.raid.lmee.rest;
 import com.raid.lmee.model.CreateMatchRequest;
 import com.raid.lmee.model.CreateMatchResponse;
 import com.raid.lmee.model.MatchResponse;
+import com.raid.lmee.model.command.MatchCommand;
 import com.raid.lmee.service.MatchService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,17 @@ public class MatchResource {
         CreateMatchResponse response = new CreateMatchResponse(createdMatchId);
 
         return new ResponseEntity<>(response, CREATED);
+    }
+
+    // TODO: response entity of the event id?
+    @PostMapping("{matchId}/events")
+    public ResponseEntity<Void> recordEvent(
+            @PathVariable UUID matchId,
+            @RequestBody @Valid MatchCommand command
+    ) {
+        matchService.handle(matchId, command);
+
+        return ResponseEntity.accepted().build();
     }
 
 }

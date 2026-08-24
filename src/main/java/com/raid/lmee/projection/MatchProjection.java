@@ -36,4 +36,19 @@ public class MatchProjection {
         match.setMatchState(savedMatchState);
         matchRepository.save(match);
     }
+
+    public void on(MatchEvent.MatchStarted event) {
+        matchStateRepository.findById(event.matchId()).ifPresent(matchState -> {
+            matchState.setStatus(MatchStatus.IN_PROGRESS);
+            matchState.setHomeScore(0);
+            matchState.setAwayScore(0);
+            matchState.setHomeYellows(0);
+            matchState.setAwayYellows(0);
+            matchState.setHomeReds(0);
+            matchState.setAwayReds(0);
+            matchState.setHomeSubs(0);
+            matchState.setAwaySubs(0);
+            matchStateRepository.save(matchState);
+        });
+    }
 }

@@ -5,6 +5,7 @@ import com.raid.lmee.domain.aggregate.MatchAggregate;
 import com.raid.lmee.domain.event.MatchEvent;
 import com.raid.lmee.model.MatchEventType;
 import com.raid.lmee.model.MatchResponse;
+import com.raid.lmee.model.command.MatchCommand;
 import com.raid.lmee.projection.MatchProjection;
 import com.raid.lmee.repos.ClubMatchRepository;
 import com.raid.lmee.repos.ClubRepository;
@@ -12,13 +13,14 @@ import com.raid.lmee.repos.MatchEventStoreRepository;
 import com.raid.lmee.repos.MatchRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -90,6 +92,55 @@ public class MatchService {
         return aggregate.getMatchId();
     }
 
+    public void handle(UUID matchId, @Valid MatchCommand command) {
+        if (!matchRepository.existsById(matchId)) {
+            throw new IllegalStateException("match not found");
+        }
+        List<MatchEvent> history = loadHistoryFor(matchId);
+        MatchAggregate aggregate = MatchAggregate.reconstitute(history);
+
+        switch (command) {
+            case MatchCommand.StartMatch _ -> aggregate.startMatch();
+            default -> throw new IllegalStateException("Unexpected value: " + command);
+        }
+
+        dispatchEvents(aggregate);
+    }
+
+    private List<MatchEvent> loadHistoryFor(UUID matchId) {
+        Sort sort = Sort.by("occurredAt").ascending();
+        List<MatchEventStore> events = matchEventStoreRepository.findByMatchId(matchId, sort);
+
+        return events.stream()
+                .map(matchEvent -> deserialize(matchEvent.getEventType(), matchEvent.getPayload()))
+                .toList();
+    }
+
+    private MatchEvent deserialize(MatchEventType eventType, String payload) {
+        return switch (eventType) {
+            case MATCH_SCHEDULED -> objectMapper.readValue(payload, MatchEvent.MatchScheduled.class);
+            case MATCH_STARTED -> objectMapper.readValue(payload, MatchEvent.MatchStarted.class);
+            case FIRST_HALF_ENDED -> objectMapper.readValue(payload, MatchEvent.FirstHalfEnded.class);
+            case SECOND_HALF_STARTED -> objectMapper.readValue(payload, MatchEvent.SecondHalfStarted.class);
+            case FULL_TIME -> objectMapper.readValue(payload, MatchEvent.FullTime.class);
+            case MATCH_ABANDONED -> objectMapper.readValue(payload, MatchEvent.MatchAbandoned.class);
+            case MATCH_POSTPONED -> objectMapper.readValue(payload, MatchEvent.MatchPostponed.class);
+            case GOAL_SCORED -> objectMapper.readValue(payload, MatchEvent.GoalScored.class);
+            case OWN_GOAL -> objectMapper.readValue(payload, MatchEvent.OwnGoal.class);
+            case GOAL_CANCELED -> objectMapper.readValue(payload, MatchEvent.GoalCanceled.class);
+            case YELLOW_CARD_GIVEN -> objectMapper.readValue(payload, MatchEvent.YellowCardGiven.class);
+            case RED_CARD_GIVEN -> objectMapper.readValue(payload, MatchEvent.RedCardGiven.class);
+            case SECOND_YELLOW_CARD -> objectMapper.readValue(payload, MatchEvent.SecondYellowCard.class);
+            case SUBSTITUTION -> objectMapper.readValue(payload, MatchEvent.Substitution.class);
+            case PENALTY_AWARDED -> objectMapper.readValue(payload, MatchEvent.PenaltyAwarded.class);
+            case PENALTY_SCORED -> objectMapper.readValue(payload, MatchEvent.PenaltyScored.class);
+            case PENALTY_MISSED -> objectMapper.readValue(payload, MatchEvent.PenaltyMissed.class);
+            case VAR_CHECK_STARTED -> objectMapper.readValue(payload, MatchEvent.VarCheckStarted.class);
+            case VAR_DECISION -> objectMapper.readValue(payload, MatchEvent.VarDecision.class);
+            case ADDED_TIME_ANNOUNCED -> objectMapper.readValue(payload, MatchEvent.AddedTimeAnnounced.class);
+        };
+    }
+
     private Match registerMatch(
             UUID homeClubId,
             UUID awayClubId,
@@ -148,7 +199,10 @@ public class MatchService {
     private void routeToProjections(MatchEvent event) {
         switch (event) {
             case MatchEvent.MatchScheduled e -> matchProjection.on(e);
+            case MatchEvent.MatchStarted e -> matchProjection.on(e);
             default -> {}
         }
     }
+
+
 }
