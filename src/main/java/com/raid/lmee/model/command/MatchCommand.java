@@ -53,10 +53,15 @@ public sealed interface MatchCommand {
     record BlowFullTime() implements MatchCommand {
     }
 
-    record AbandonMatch() implements MatchCommand {
+    record AbandonMatch(
+            String reason,
+            int minute
+    ) implements MatchCommand {
     }
 
-    record PostponeMatch() implements MatchCommand {
+    record PostponeMatch(
+            String reason
+    ) implements MatchCommand {
     }
 
     record ScoreGoal(

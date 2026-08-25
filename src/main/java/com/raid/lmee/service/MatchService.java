@@ -101,6 +101,11 @@ public class MatchService {
 
         switch (command) {
             case MatchCommand.StartMatch _ -> aggregate.startMatch();
+            case MatchCommand.EndFirstHalf _ -> aggregate.endFirstHalf();
+            case MatchCommand.StartSecondHalf _ -> aggregate.startSecondHalf();
+            case MatchCommand.BlowFullTime _ -> aggregate.endMatch();
+            case MatchCommand.AbandonMatch c -> aggregate.abandonMatch(c.reason(), c.minute());
+            case MatchCommand.PostponeMatch c -> aggregate.postponeMatch(c.reason());
             default -> throw new IllegalStateException("Unexpected value: " + command);
         }
 
@@ -159,7 +164,6 @@ public class MatchService {
     }
 
     private ClubMatch buildClubMatch(Match match, UUID clubId, boolean isHome) {
-        System.out.println("###### CLUB ID PASSED: " + clubId + " ######");
         ClubMatch clubMatch = new ClubMatch();
         clubMatch.setId(new ClubMatchId(match.getId(), clubId));
         clubMatch.setMatch(match);
@@ -200,6 +204,11 @@ public class MatchService {
         switch (event) {
             case MatchEvent.MatchScheduled e -> matchProjection.on(e);
             case MatchEvent.MatchStarted e -> matchProjection.on(e);
+            case MatchEvent.FirstHalfEnded e -> matchProjection.on(e);
+            case MatchEvent.SecondHalfStarted e -> matchProjection.on(e);
+            case MatchEvent.FullTime e -> matchProjection.on(e);
+            case MatchEvent.MatchAbandoned e -> matchProjection.on(e);
+            case MatchEvent.MatchPostponed e -> matchProjection.on(e);
             default -> {}
         }
     }

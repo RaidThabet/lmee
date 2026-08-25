@@ -51,4 +51,39 @@ public class MatchProjection {
             matchStateRepository.save(matchState);
         });
     }
+
+    public void on(MatchEvent.FirstHalfEnded event) {
+        matchStateRepository.findById(event.matchId()).ifPresent(matchState -> {
+            matchState.setStatus(MatchStatus.HALF_TIME);
+            matchStateRepository.save(matchState);
+        });
+    }
+
+    public void on(MatchEvent.SecondHalfStarted event) {
+        matchStateRepository.findById(event.matchId()).ifPresent(matchState -> {
+            matchState.setStatus(MatchStatus.IN_PROGRESS);
+            matchStateRepository.save(matchState);
+        });
+    }
+
+    public void on(MatchEvent.FullTime event) {
+        matchStateRepository.findById(event.matchId()).ifPresent(matchState -> {
+            matchState.setStatus(MatchStatus.COMPLETED);
+            matchStateRepository.save(matchState);
+        });
+    }
+
+    public void on(MatchEvent.MatchAbandoned event) {
+        matchStateRepository.findById(event.matchId()).ifPresent(matchState -> {
+            matchState.setStatus(MatchStatus.ABANDONED);
+            matchStateRepository.save(matchState);
+        });
+    }
+
+    public void on(MatchEvent.MatchPostponed event) {
+        matchStateRepository.findById(event.matchId()).ifPresent(matchState -> {
+            matchState.setStatus(MatchStatus.POSTPONED);
+            matchStateRepository.save(matchState);
+        });
+    }
 }

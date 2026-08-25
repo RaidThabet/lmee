@@ -20,6 +20,8 @@ public class MatchAggregate {
 
     private MatchStatus status;
 
+    private Integer half;
+
     private Integer homeScore;
 
     private Integer awayScore;
@@ -60,10 +62,55 @@ public class MatchAggregate {
     }
 
     public void startMatch() {
-        if (status != MatchStatus.SCHEDULED) {
+        if (status != MatchStatus.SCHEDULED || half != null) {
             throw new IllegalStateException("Match must be in scheduled state");
         }
         MatchEvent event = new MatchEvent.MatchStarted(matchId, OffsetDateTime.now());
+        apply(event);
+        uncommittedEvents.add(event);
+    }
+
+    public void endFirstHalf() {
+        if (status != MatchStatus.IN_PROGRESS || half != 1) {
+            throw new IllegalStateException("match is not in progress or in first half");
+        }
+        MatchEvent event = new MatchEvent.FirstHalfEnded(matchId, OffsetDateTime.now());
+        apply(event);
+        uncommittedEvents.add(event);
+    }
+
+    public void startSecondHalf() {
+        if (status != MatchStatus.HALF_TIME) {
+            throw new IllegalStateException("match is not in half time");
+        }
+        MatchEvent event = new MatchEvent.SecondHalfStarted(matchId, OffsetDateTime.now());
+        apply(event);
+        uncommittedEvents.add(event);
+    }
+
+    public void endMatch() {
+        if (status != MatchStatus.IN_PROGRESS || half != 2) {
+            throw new IllegalStateException("match is not in progress or in second half");
+        }
+        MatchEvent event = new MatchEvent.FullTime(matchId, OffsetDateTime.now());
+        apply(event);
+        uncommittedEvents.add(event);
+    }
+
+    public void abandonMatch(String reason, int minute) {
+        if (status != MatchStatus.IN_PROGRESS) {
+            throw new IllegalStateException("match is not in progress");
+        }
+        MatchEvent event = new MatchEvent.MatchAbandoned(matchId, reason, minute, OffsetDateTime.now());
+        apply(event);
+        uncommittedEvents.add(event);
+    }
+
+    public void postponeMatch(String reason) {
+        if (status != MatchStatus.SCHEDULED) {
+            throw new IllegalStateException("match must be scheduled");
+        }
+        MatchEvent event = new MatchEvent.MatchPostponed(matchId, reason, OffsetDateTime.now());
         apply(event);
         uncommittedEvents.add(event);
     }
@@ -83,6 +130,7 @@ public class MatchAggregate {
                 this.status = MatchStatus.SCHEDULED;
                 this.homeTally = null;
                 this.awayTally = null;
+                this.half = null;
             }
             case MatchEvent.MatchStarted _ -> {
                 this.status = MatchStatus.IN_PROGRESS;
@@ -90,6 +138,24 @@ public class MatchAggregate {
                 this.awayScore = 0;
                 this.homeTally = new TeamTally();
                 this.awayTally = new TeamTally();
+                this.half = 1;
+            }
+            case MatchEvent.FirstHalfEnded _ -> {
+                this.status = MatchStatus.HALF_TIME;
+            }
+            case MatchEvent.SecondHalfStarted _ -> {
+                this.status = MatchStatus.IN_PROGRESS;
+                this.half = 2;
+            }
+            case MatchEvent.FullTime _ -> {
+                this.status = MatchStatus.COMPLETED;
+                this.half = null;
+            }
+            case MatchEvent.MatchAbandoned _ -> {
+                this.status = MatchStatus.ABANDONED;
+            }
+            case MatchEvent.MatchPostponed _ -> {
+                this.status = MatchStatus.POSTPONED;
             }
             default -> throw new IllegalStateException("Unexpected value: " + event);
         }

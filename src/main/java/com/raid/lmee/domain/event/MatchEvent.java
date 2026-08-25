@@ -67,6 +67,8 @@ public sealed interface MatchEvent {
 
     record MatchAbandoned(
             UUID matchId,
+            String reason,
+            int minute,
             OffsetDateTime occurredAt
     ) implements MatchEvent {
         @Override
@@ -77,6 +79,7 @@ public sealed interface MatchEvent {
 
     record MatchPostponed(
             UUID matchId,
+            String reason,
             OffsetDateTime occurredAt
     ) implements MatchEvent {
         @Override
