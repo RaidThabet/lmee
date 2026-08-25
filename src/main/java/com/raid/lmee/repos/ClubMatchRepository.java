@@ -1,9 +1,8 @@
 package com.raid.lmee.repos;
 
 import com.raid.lmee.domain.ClubMatch;
+import com.raid.lmee.domain.ClubMatchId;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.UUID;
-
-public interface ClubMatchRepository extends JpaRepository<ClubMatch, UUID> {
+public interface ClubMatchRepository extends JpaRepository<ClubMatch, ClubMatchId> {
 }
