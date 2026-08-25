@@ -118,7 +118,6 @@ public sealed interface MatchEvent {
             UUID matchId,
             OffsetDateTime occurredAt,
             UUID clubId,
-            UUID correctsEventId,
             int minute
     ) implements MatchEvent {
         @Override
@@ -233,7 +232,6 @@ public sealed interface MatchEvent {
             UUID matchId,
             OffsetDateTime occurredAt,
             String decision,
-            UUID correctsEventId,
             int minute
     ) implements MatchEvent {
         @Override

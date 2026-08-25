@@ -80,7 +80,6 @@ public sealed interface MatchCommand {
 
     record CancelGoal(
             @NotNull UUID clubId,
-            @NotNull UUID correctsEventId,
             @NotNull @Min(0) Integer minute
     ) implements MatchCommand {
     }

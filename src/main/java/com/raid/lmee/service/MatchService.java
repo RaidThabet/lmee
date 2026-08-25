@@ -106,7 +106,13 @@ public class MatchService {
             case MatchCommand.BlowFullTime _ -> aggregate.endMatch();
             case MatchCommand.AbandonMatch c -> aggregate.abandonMatch(c.reason(), c.minute());
             case MatchCommand.PostponeMatch c -> aggregate.postponeMatch(c.reason());
-            default -> throw new IllegalStateException("Unexpected value: " + command);
+            case MatchCommand.ScoreGoal c -> aggregate.scoreGoal(c.clubId(), c.playerId(), c.minute());
+            case MatchCommand.ScoreOwnGoal c -> aggregate.scoreOwnGoal(c.clubId(), c.playerId(), c.minute());
+            case MatchCommand.CancelGoal c -> aggregate.cancelGoal(c.clubId(), c.minute());
+            case MatchCommand.AwardPenalty c -> aggregate.awardPenalty(c.clubId(), c.minute());
+            case MatchCommand.ScorePenalty c -> aggregate.scorePenalty(c.clubId(), c.playerId(), c.minute());
+            case MatchCommand.MissPenalty c -> aggregate.missPenalty(c.clubId(), c.playerId(), c.minute());
+            default -> throw new UnsupportedOperationException("command not supported yet: " + command);
         }
 
         dispatchEvents(aggregate);
@@ -209,6 +215,12 @@ public class MatchService {
             case MatchEvent.FullTime e -> matchProjection.on(e);
             case MatchEvent.MatchAbandoned e -> matchProjection.on(e);
             case MatchEvent.MatchPostponed e -> matchProjection.on(e);
+            case MatchEvent.GoalScored e -> matchProjection.on(e);
+            case MatchEvent.OwnGoal e -> matchProjection.on(e);
+            case MatchEvent.GoalCanceled e -> matchProjection.on(e);
+            case MatchEvent.PenaltyAwarded e -> matchProjection.on(e);
+            case MatchEvent.PenaltyScored e -> matchProjection.on(e);
+            case MatchEvent.PenaltyMissed e -> matchProjection.on(e);
             default -> {}
         }
     }
