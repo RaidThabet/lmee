@@ -33,7 +33,7 @@ public class Match {
     @Column(columnDefinition = "text")
     private String venue;
 
-    @OneToMany(mappedBy = "match")
+    @OneToMany(mappedBy = "match", cascade = CascadeType.REMOVE)
     private Set<ClubMatch> matchClubs = new HashSet<>();
 
     @OneToOne(mappedBy = "match", cascade = CascadeType.REMOVE)
