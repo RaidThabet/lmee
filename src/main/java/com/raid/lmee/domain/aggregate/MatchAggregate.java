@@ -5,9 +5,7 @@ import com.raid.lmee.model.MatchStatus;
 import lombok.Data;
 
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Data
 public class MatchAggregate {
@@ -29,6 +27,14 @@ public class MatchAggregate {
     private TeamTally homeTally;
 
     private TeamTally awayTally;
+
+    private final Map<UUID, Integer> yellowsByPlayer = new HashMap<>();
+
+    private final Set<UUID> sentOffPlayers = new HashSet<>();
+
+    private final Set<UUID> subbedOutPlayers = new HashSet<>();
+
+    private final Set<UUID> subbedInPlayers = new HashSet<>();
 
     private UUID pendingPenaltyClubId;
 
@@ -57,7 +63,7 @@ public class MatchAggregate {
                 awayClubId,
                 scheduledKickoff,
                 venue
-                );
+        );
         MatchAggregate aggregate = new MatchAggregate();
         aggregate.apply(event);
         aggregate.uncommittedEvents.add(event);
@@ -128,9 +134,9 @@ public class MatchAggregate {
             UUID scoringPlayerId,
             int minute
     ) {
-        if (status != MatchStatus.IN_PROGRESS) {
-            throw new IllegalStateException("match is not in progress");
-        }
+        requireInProgress();
+        requirePlayerOnThePitch(scoringPlayerId);
+
         MatchEvent event = new MatchEvent.GoalScored(matchId, OffsetDateTime.now(), clubId, scoringPlayerId, minute);
         apply(event);
         uncommittedEvents.add(event);
@@ -147,6 +153,7 @@ public class MatchAggregate {
     ) {
         requireInProgress();
         requireParticipant(clubId);
+        requirePlayerOnThePitch(playerId);
 
         MatchEvent event = new MatchEvent.OwnGoal(matchId, OffsetDateTime.now(), clubId, playerId, minute);
         apply(event);
@@ -195,6 +202,7 @@ public class MatchAggregate {
     ) {
         requireInProgress();
         requirePendingPenaltyFor(clubId);
+        requirePlayerOnThePitch(playerId);
 
         MatchEvent event = new MatchEvent.PenaltyScored(matchId, OffsetDateTime.now(), clubId, playerId, minute);
         apply(event);
@@ -208,10 +216,102 @@ public class MatchAggregate {
     ) {
         requireInProgress();
         requirePendingPenaltyFor(clubId);
+        requirePlayerOnThePitch(playerId);
 
         MatchEvent event = new MatchEvent.PenaltyMissed(matchId, OffsetDateTime.now(), clubId, playerId, minute);
         apply(event);
         uncommittedEvents.add(event);
+    }
+
+    // ### Discipline decide methods ###
+
+    public void bookPlayer(UUID clubId, UUID playerId, int minute) {
+        requireInProgress();
+        requireParticipant(clubId);
+        requirePlayerNotSentOff(playerId);
+
+        if (yellows(playerId) == 0) {
+            MatchEvent event = new MatchEvent.YellowCardGiven(matchId, OffsetDateTime.now(), clubId, playerId, minute);
+            apply(event);
+            uncommittedEvents.add(event);
+        }
+        else if (yellows(playerId) == 1) {
+            MatchEvent secondYellowEvent = new MatchEvent.SecondYellowCard(matchId, OffsetDateTime.now(), clubId, playerId, minute);
+            MatchEvent redCardEvent = new MatchEvent.RedCardGiven(matchId, OffsetDateTime.now(), clubId, playerId, minute);
+            apply(secondYellowEvent);
+            apply(redCardEvent);
+            uncommittedEvents.addAll(List.of(secondYellowEvent, redCardEvent));
+        } else {
+            throw new IllegalStateException("incorrect player yellows count");
+        }
+
+    }
+
+    private int yellows(UUID playerId) {
+        return this.yellowsByPlayer.getOrDefault(playerId, 0);
+    }
+
+    private void requirePlayerNotSentOff(UUID playerId) {
+        if (sentOffPlayers.contains(playerId)) {
+            throw new IllegalStateException("player is sent off");
+        }
+    }
+
+    public void sendOffPlayer(UUID clubId, UUID playerId, int minute) {
+        requireInProgress();
+        requireParticipant(clubId);
+        requirePlayerNotSentOff(playerId);
+
+        MatchEvent event = new MatchEvent.RedCardGiven(matchId, OffsetDateTime.now(), clubId, playerId, minute);
+        apply(event);
+        uncommittedEvents.add(event);
+    }
+
+    public void substitute(UUID clubId, UUID playerOutId, UUID playerInId, int minute) {
+        requireInProgress();
+        requireParticipant(clubId);
+        requireClubDidNotFinishSubs(clubId);
+        requirePlayerNotSentOff(playerOutId);
+        requirePlayerNotSentOff(playerInId);
+        requirePlayerOnThePitch(playerOutId);
+        requirePlayerNotOnThePitch(playerInId);
+
+        MatchEvent event = new MatchEvent.Substitution(matchId, OffsetDateTime.now(), clubId, playerOutId, playerInId, minute);
+        apply(event);
+        uncommittedEvents.add(event);
+    }
+
+    private void requireClubDidNotFinishSubs(UUID clubId) {
+        if (isHome(clubId)) {
+            if (homeTally.getSubstitutions() == 5) {
+                throw new IllegalStateException("club already reached maximum subs");
+            }
+        } else {
+            if (awayTally.getSubstitutions() == 5) {
+                throw new IllegalStateException("club already reached maximum subs");
+            }
+        }
+    }
+
+    private void requirePlayerNotOnThePitch(UUID playerInId) {
+        if (sentOffPlayers.contains(playerInId)) {
+            throw new IllegalStateException("player has been sent off");
+        }
+        if (subbedOutPlayers.contains(playerInId)) {
+            throw new IllegalStateException("player has been substituted off and cannot return");
+        }
+        if (subbedInPlayers.contains(playerInId)) {
+            throw new IllegalStateException("player is already on the pitch");
+        }
+    }
+
+    private void requirePlayerOnThePitch(UUID playerOutId) {
+        if (sentOffPlayers.contains(playerOutId)) {
+            throw new IllegalStateException("player has been sent off");
+        }
+        if (subbedOutPlayers.contains(playerOutId)) {
+            throw new IllegalStateException("player has already been substituted off");
+        }
     }
 
     // ### Guards ###
@@ -322,6 +422,39 @@ public class MatchAggregate {
                 this.pendingPenaltyClubId = null;
             }
             case MatchEvent.PenaltyMissed _ -> this.pendingPenaltyClubId = null;
+            case MatchEvent.YellowCardGiven e -> {
+                yellowsByPlayer.put(e.playerId(), 1);
+                if (isHome(e.clubId())) {
+                    this.homeTally.addYellowCard();
+                } else {
+                    this.awayTally.addYellowCard();
+                }
+            }
+            case MatchEvent.SecondYellowCard e -> {
+                yellowsByPlayer.put(e.playerId(), 2);
+                if (isHome(e.clubId())) {
+                    this.homeTally.addYellowCard();
+                } else {
+                    this.awayTally.addYellowCard();
+                }
+            }
+            case MatchEvent.RedCardGiven e -> {
+                sentOffPlayers.add(e.playerId());
+                if (isHome(e.clubId())) {
+                    this.homeTally.addRedCard();
+                } else {
+                    this.awayTally.addRedCard();
+                }
+            }
+            case MatchEvent.Substitution e -> {
+                subbedInPlayers.add(e.playerInId());
+                subbedOutPlayers.add(e.playerOutId());
+                if (isHome(e.clubId())) {
+                    this.homeTally.addSubstitution();
+                } else {
+                    this.awayTally.addSubstitution();
+                }
+            }
             default -> throw new IllegalStateException("Unexpected value: " + event);
         }
     }

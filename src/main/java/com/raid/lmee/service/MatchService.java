@@ -112,6 +112,10 @@ public class MatchService {
             case MatchCommand.AwardPenalty c -> aggregate.awardPenalty(c.clubId(), c.minute());
             case MatchCommand.ScorePenalty c -> aggregate.scorePenalty(c.clubId(), c.playerId(), c.minute());
             case MatchCommand.MissPenalty c -> aggregate.missPenalty(c.clubId(), c.playerId(), c.minute());
+            case MatchCommand.GiveYellowCard c -> aggregate.bookPlayer(c.clubId(), c.playerId(), c.minute());
+            case MatchCommand.GiveRedCard c -> aggregate.sendOffPlayer(c.clubId(), c.playerId(), c.minute());
+            case MatchCommand.Substitute c ->
+                    aggregate.substitute(c.clubId(), c.playerOutId(), c.playerInId(), c.minute());
             default -> throw new UnsupportedOperationException("command not supported yet: " + command);
         }
 
@@ -221,6 +225,10 @@ public class MatchService {
             case MatchEvent.PenaltyAwarded e -> matchProjection.on(e);
             case MatchEvent.PenaltyScored e -> matchProjection.on(e);
             case MatchEvent.PenaltyMissed e -> matchProjection.on(e);
+            case MatchEvent.YellowCardGiven e -> matchProjection.on(e);
+            case MatchEvent.SecondYellowCard e -> matchProjection.on(e);
+            case MatchEvent.RedCardGiven e -> matchProjection.on(e);
+            case MatchEvent.Substitution e -> matchProjection.on(e);
             default -> {}
         }
     }

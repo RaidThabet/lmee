@@ -30,7 +30,6 @@ import java.util.UUID;
         @JsonSubTypes.Type(value = MatchCommand.CancelGoal.class, name = "GOAL_CANCELED"),
         @JsonSubTypes.Type(value = MatchCommand.GiveYellowCard.class, name = "YELLOW_CARD_GIVEN"),
         @JsonSubTypes.Type(value = MatchCommand.GiveRedCard.class, name = "RED_CARD_GIVEN"),
-        @JsonSubTypes.Type(value = MatchCommand.GiveSecondYellowCard.class, name = "SECOND_YELLOW_CARD"),
         @JsonSubTypes.Type(value = MatchCommand.Substitute.class, name = "SUBSTITUTION"),
         @JsonSubTypes.Type(value = MatchCommand.AwardPenalty.class, name = "PENALTY_AWARDED"),
         @JsonSubTypes.Type(value = MatchCommand.ScorePenalty.class, name = "PENALTY_SCORED"),
@@ -92,13 +91,6 @@ public sealed interface MatchCommand {
     }
 
     record GiveRedCard(
-            @NotNull UUID clubId,
-            @NotNull UUID playerId,
-            @NotNull @Min(0) Integer minute
-    ) implements MatchCommand {
-    }
-
-    record GiveSecondYellowCard(
             @NotNull UUID clubId,
             @NotNull UUID playerId,
             @NotNull @Min(0) Integer minute

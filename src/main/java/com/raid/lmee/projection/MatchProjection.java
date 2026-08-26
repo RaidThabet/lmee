@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 @Service
 @Transactional
@@ -102,6 +103,63 @@ public class MatchProjection {
     }
 
     public void on(MatchEvent.PenaltyMissed event) {
+    }
+
+    public void on(MatchEvent.YellowCardGiven event) {
+        incrementSide(
+                event.matchId(),
+                event.clubId(),
+                state -> state.setHomeYellows(state.getHomeYellows() + 1),
+                state -> state.setAwayYellows(state.getAwayYellows() + 1)
+        );
+    }
+
+    /**
+     * A second yellow is a booking as well as a dismissal, so it bumps the yellow count here and the
+     * red count through the {@code RedCardGiven} that always follows it. Counting bookings from
+     * {@code YELLOW_CARD_GIVEN} alone misses every player sent off for two.
+     */
+    public void on(MatchEvent.SecondYellowCard event) {
+        incrementSide(
+                event.matchId(),
+                event.clubId(),
+                state -> state.setHomeYellows(state.getHomeYellows() + 1),
+                state -> state.setAwayYellows(state.getAwayYellows() + 1)
+        );
+    }
+
+    public void on(MatchEvent.RedCardGiven event) {
+        incrementSide(
+                event.matchId(),
+                event.clubId(),
+                state -> state.setHomeReds(state.getHomeReds() + 1),
+                state -> state.setAwayReds(state.getAwayReds() + 1)
+        );
+    }
+
+    public void on(MatchEvent.Substitution event) {
+        incrementSide(
+                event.matchId(),
+                event.clubId(),
+                state -> state.setHomeSubs(state.getHomeSubs() + 1),
+                state -> state.setAwaySubs(state.getAwaySubs() + 1)
+        );
+    }
+
+    /**
+     * Applies whichever increment belongs to {@code clubId}'s side of the tally.
+     */
+    private void incrementSide(
+            UUID matchId,
+            UUID clubId,
+            Consumer<MatchState> incrementHome,
+            Consumer<MatchState> incrementAway
+    ) {
+        MatchState matchState = loadState(matchId);
+        Consumer<MatchState> increment = isHomeSide(matchId, clubId) ? incrementHome : incrementAway;
+        increment.accept(matchState);
+
+        matchStateRepository.save(matchState);
     }
 
     /**

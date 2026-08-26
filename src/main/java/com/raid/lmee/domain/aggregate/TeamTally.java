@@ -13,9 +13,6 @@ class TeamTally {
 
     public void addYellowCard() {
         yellowCards++;
-        if (yellowCards == 2) {
-            addRedCard();
-        }
     }
 
     public void addRedCard() {
