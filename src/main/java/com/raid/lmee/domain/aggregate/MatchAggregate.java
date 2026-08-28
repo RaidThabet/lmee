@@ -152,6 +152,7 @@ public class MatchAggregate {
             int minute
     ) {
         requireInProgress();
+        requireParticipant(clubId);
         requirePlayerOnThePitch(scoringPlayerId);
 
         MatchEvent event = new MatchEvent.GoalScored(matchId, OffsetDateTime.now(), clubId, scoringPlayerId, minute);

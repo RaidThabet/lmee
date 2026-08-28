@@ -3,7 +3,10 @@ package com.raid.lmee.service;
 import com.raid.lmee.domain.*;
 import com.raid.lmee.domain.aggregate.MatchAggregate;
 import com.raid.lmee.domain.event.MatchEvent;
+import com.raid.lmee.exception.ClubNotFoundException;
 import com.raid.lmee.exception.MatchNotFoundException;
+import com.raid.lmee.exception.PlayerNotFoundException;
+import com.raid.lmee.exception.PlayerNotInClubException;
 import com.raid.lmee.model.MatchEventType;
 import com.raid.lmee.model.MatchResponse;
 import com.raid.lmee.model.command.MatchCommand;
@@ -12,6 +15,7 @@ import com.raid.lmee.repos.ClubMatchRepository;
 import com.raid.lmee.repos.ClubRepository;
 import com.raid.lmee.repos.MatchEventStoreRepository;
 import com.raid.lmee.repos.MatchRepository;
+import com.raid.lmee.repos.PlayerRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
@@ -37,6 +41,8 @@ public class MatchService {
     private final ClubRepository clubRepository;
 
     private final ClubMatchRepository clubMatchRepository;
+
+    private final PlayerRepository playerRepository;
 
     private final MatchProjection matchProjection;
 
@@ -97,6 +103,8 @@ public class MatchService {
         if (!matchRepository.existsById(matchId)) {
             throw new MatchNotFoundException(matchId);
         }
+        requireReferencedRowsExist(command);
+
         List<MatchEvent> history = loadHistoryFor(matchId);
         MatchAggregate aggregate = MatchAggregate.reconstitute(history);
 
@@ -123,6 +131,42 @@ public class MatchService {
         }
 
         dispatchEvents(aggregate);
+    }
+
+    private void requireReferencedRowsExist(MatchCommand command) {
+        switch (command) {
+            case MatchCommand.ScoreGoal c -> requirePlaysFor(c.clubId(), c.playerId());
+            case MatchCommand.ScoreOwnGoal c -> requirePlaysFor(c.clubId(), c.playerId());
+            case MatchCommand.ScorePenalty c -> requirePlaysFor(c.clubId(), c.playerId());
+            case MatchCommand.MissPenalty c -> requirePlaysFor(c.clubId(), c.playerId());
+            case MatchCommand.GiveYellowCard c -> requirePlaysFor(c.clubId(), c.playerId());
+            case MatchCommand.GiveRedCard c -> requirePlaysFor(c.clubId(), c.playerId());
+            case MatchCommand.Substitute c -> requirePlaysFor(c.clubId(), c.playerOutId(), c.playerInId());
+            case MatchCommand.CancelGoal c -> requireClubExists(c.clubId());
+            case MatchCommand.AwardPenalty c -> requireClubExists(c.clubId());
+            default -> {
+                // the remaining commands name neither a club nor a player
+            }
+        }
+    }
+
+    private void requirePlaysFor(UUID clubId, UUID... playerIds) {
+        requireClubExists(clubId);
+
+        for (UUID playerId : playerIds) {
+            Player player = playerRepository.findById(playerId)
+                    .orElseThrow(() -> new PlayerNotFoundException(playerId));
+
+            if (!player.getClub().getId().equals(clubId)) {
+                throw new PlayerNotInClubException(playerId, clubId);
+            }
+        }
+    }
+
+    private void requireClubExists(UUID clubId) {
+        if (!clubRepository.existsById(clubId)) {
+            throw new ClubNotFoundException(clubId);
+        }
     }
 
     private List<MatchEvent> loadHistoryFor(UUID matchId) {
