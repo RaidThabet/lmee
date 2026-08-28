@@ -38,6 +38,8 @@ public class MatchAggregate {
 
     private UUID pendingPenaltyClubId;
 
+    private boolean varCheckInProgress;
+
     private final List<MatchEvent> uncommittedEvents = new ArrayList<>();
 
     // ### Factories ###
@@ -86,6 +88,7 @@ public class MatchAggregate {
         if (status != MatchStatus.IN_PROGRESS || half != 1) {
             throw new IllegalStateException("match is not in progress or in first half");
         }
+        requireNoVarCheckInProgress();
         MatchEvent event = new MatchEvent.FirstHalfEnded(matchId, OffsetDateTime.now());
         apply(event);
         uncommittedEvents.add(event);
@@ -95,6 +98,7 @@ public class MatchAggregate {
         if (status != MatchStatus.HALF_TIME) {
             throw new IllegalStateException("match is not in half time");
         }
+        requireNoVarCheckInProgress();
         MatchEvent event = new MatchEvent.SecondHalfStarted(matchId, OffsetDateTime.now());
         apply(event);
         uncommittedEvents.add(event);
@@ -104,6 +108,7 @@ public class MatchAggregate {
         if (status != MatchStatus.IN_PROGRESS || half != 2) {
             throw new IllegalStateException("match is not in progress or in second half");
         }
+        requireNoVarCheckInProgress();
         MatchEvent event = new MatchEvent.FullTime(matchId, OffsetDateTime.now());
         apply(event);
         uncommittedEvents.add(event);
@@ -314,7 +319,46 @@ public class MatchAggregate {
         }
     }
 
+    // ### Officiating decide methods ###
+
+    public void startVarCheck(String reason, int minute) {
+        requireInProgress();
+        requireNoVarCheckInProgress();
+
+        MatchEvent event = new MatchEvent.VarCheckStarted(matchId, OffsetDateTime.now(), reason, minute);
+        apply(event);
+        uncommittedEvents.add(event);
+    }
+
+    public void recordVarDecision(String decision, int minute) {
+        requireInProgress();
+        if (!varCheckInProgress) {
+            throw new IllegalStateException("no var check is awaiting a decision");
+        }
+
+        MatchEvent event = new MatchEvent.VarDecision(matchId, OffsetDateTime.now(), decision, minute);
+        apply(event);
+        uncommittedEvents.add(event);
+    }
+
+    /**
+     * Added time may be announced more than once in the same half: the referee is free to revise it.
+     */
+    public void announceAddedTime(int addedMinutes) {
+        requireInProgress();
+
+        MatchEvent event = new MatchEvent.AddedTimeAnnounced(matchId, OffsetDateTime.now(), addedMinutes);
+        apply(event);
+        uncommittedEvents.add(event);
+    }
+
     // ### Guards ###
+
+    private void requireNoVarCheckInProgress() {
+        if (varCheckInProgress) {
+            throw new IllegalStateException("a var check is awaiting a decision");
+        }
+    }
 
     private void requireInProgress() {
         if (status != MatchStatus.IN_PROGRESS) {
@@ -386,6 +430,7 @@ public class MatchAggregate {
                 this.awayTally = null;
                 this.half = null;
                 this.pendingPenaltyClubId = null;
+                this.varCheckInProgress = false;
             }
             case MatchEvent.MatchStarted _ -> {
                 this.status = MatchStatus.IN_PROGRESS;
@@ -395,6 +440,7 @@ public class MatchAggregate {
                 this.awayTally = new TeamTally();
                 this.half = 1;
                 this.pendingPenaltyClubId = null;
+                this.varCheckInProgress = false;
             }
             case MatchEvent.FirstHalfEnded _ -> {
                 this.status = MatchStatus.HALF_TIME;
@@ -445,6 +491,11 @@ public class MatchAggregate {
                 } else {
                     this.awayTally.addRedCard();
                 }
+            }
+            case MatchEvent.VarCheckStarted _ -> this.varCheckInProgress = true;
+            case MatchEvent.VarDecision _ -> this.varCheckInProgress = false;
+            case MatchEvent.AddedTimeAnnounced _ -> {
+                // announcing added time carries no aggregate state
             }
             case MatchEvent.Substitution e -> {
                 subbedInPlayers.add(e.playerInId());

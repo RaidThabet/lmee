@@ -220,6 +220,7 @@ public sealed interface MatchEvent {
     record VarCheckStarted(
             UUID matchId,
             OffsetDateTime occurredAt,
+            String reason,
             int minute
     ) implements MatchEvent {
         @Override

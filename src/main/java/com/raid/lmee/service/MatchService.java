@@ -116,7 +116,9 @@ public class MatchService {
             case MatchCommand.GiveRedCard c -> aggregate.sendOffPlayer(c.clubId(), c.playerId(), c.minute());
             case MatchCommand.Substitute c ->
                     aggregate.substitute(c.clubId(), c.playerOutId(), c.playerInId(), c.minute());
-            default -> throw new UnsupportedOperationException("command not supported yet: " + command);
+            case MatchCommand.StartVarCheck c -> aggregate.startVarCheck(c.reason(), c.minute());
+            case MatchCommand.RecordVarDecision c -> aggregate.recordVarDecision(c.decision(), c.minute());
+            case MatchCommand.AnnounceAddedTime c -> aggregate.announceAddedTime(c.addedMinutes());
         }
 
         dispatchEvents(aggregate);
@@ -229,7 +231,9 @@ public class MatchService {
             case MatchEvent.SecondYellowCard e -> matchProjection.on(e);
             case MatchEvent.RedCardGiven e -> matchProjection.on(e);
             case MatchEvent.Substitution e -> matchProjection.on(e);
-            default -> {}
+            case MatchEvent.VarCheckStarted e -> matchProjection.on(e);
+            case MatchEvent.VarDecision e -> matchProjection.on(e);
+            case MatchEvent.AddedTimeAnnounced e -> matchProjection.on(e);
         }
     }
 

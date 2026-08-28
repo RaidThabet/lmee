@@ -146,6 +146,15 @@ public class MatchProjection {
         );
     }
 
+    public void on(MatchEvent.VarCheckStarted event) {
+    }
+
+    public void on(MatchEvent.VarDecision event) {
+    }
+
+    public void on(MatchEvent.AddedTimeAnnounced event) {
+    }
+
     /**
      * Applies whichever increment belongs to {@code clubId}'s side of the tally.
      */

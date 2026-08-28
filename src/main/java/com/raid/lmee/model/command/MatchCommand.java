@@ -126,13 +126,13 @@ public sealed interface MatchCommand {
     }
 
     record StartVarCheck(
+            @NotBlank String reason,
             @NotNull @Min(0) Integer minute
     ) implements MatchCommand {
     }
 
     record RecordVarDecision(
             @NotBlank String decision,
-            UUID correctsEventId,
             @NotNull @Min(0) Integer minute
     ) implements MatchCommand {
     }
