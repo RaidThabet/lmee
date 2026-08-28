@@ -54,7 +54,7 @@ public sealed interface MatchCommand {
 
     record AbandonMatch(
             String reason,
-            int minute
+            @Min(1) int minute
     ) implements MatchCommand {
     }
 
@@ -66,34 +66,34 @@ public sealed interface MatchCommand {
     record ScoreGoal(
             @NotNull UUID clubId,
             @NotNull UUID playerId,
-            @NotNull @Min(0) Integer minute
+            @NotNull @Min(1) Integer minute
     ) implements MatchCommand {
     }
 
     record ScoreOwnGoal(
             @NotNull UUID clubId,
             @NotNull UUID playerId,
-            @NotNull @Min(0) Integer minute
+            @NotNull @Min(1) Integer minute
     ) implements MatchCommand {
     }
 
     record CancelGoal(
             @NotNull UUID clubId,
-            @NotNull @Min(0) Integer minute
+            @NotNull @Min(1) Integer minute
     ) implements MatchCommand {
     }
 
     record GiveYellowCard(
             @NotNull UUID clubId,
             @NotNull UUID playerId,
-            @NotNull @Min(0) Integer minute
+            @NotNull @Min(1) Integer minute
     ) implements MatchCommand {
     }
 
     record GiveRedCard(
             @NotNull UUID clubId,
             @NotNull UUID playerId,
-            @NotNull @Min(0) Integer minute
+            @NotNull @Min(1) Integer minute
     ) implements MatchCommand {
     }
 
@@ -101,39 +101,39 @@ public sealed interface MatchCommand {
             @NotNull UUID clubId,
             @NotNull UUID playerOutId,
             @NotNull UUID playerInId,
-            @NotNull @Min(0) Integer minute
+            @NotNull @Min(1) Integer minute
     ) implements MatchCommand {
     }
 
     record AwardPenalty(
             @NotNull UUID clubId,
-            @NotNull @Min(0) Integer minute
+            @NotNull @Min(1) Integer minute
     ) implements MatchCommand {
     }
 
     record ScorePenalty(
             @NotNull UUID clubId,
             @NotNull UUID playerId,
-            @NotNull @Min(0) Integer minute
+            @NotNull @Min(1) Integer minute
     ) implements MatchCommand {
     }
 
     record MissPenalty(
             @NotNull UUID clubId,
             @NotNull UUID playerId,
-            @NotNull @Min(0) Integer minute
+            @NotNull @Min(1) Integer minute
     ) implements MatchCommand {
     }
 
     record StartVarCheck(
             @NotBlank String reason,
-            @NotNull @Min(0) Integer minute
+            @NotNull @Min(1) Integer minute
     ) implements MatchCommand {
     }
 
     record RecordVarDecision(
             @NotBlank String decision,
-            @NotNull @Min(0) Integer minute
+            @NotNull @Min(1) Integer minute
     ) implements MatchCommand {
     }
 
