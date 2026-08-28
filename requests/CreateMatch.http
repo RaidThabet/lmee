@@ -1,0 +1,9 @@
+POST http://localhost:8080/matches
+Content-Type: application/json
+
+{
+  "scheduledKickoff": "2026-08-23T20:00:00.736Z",
+  "venue": "Olympique Radès",
+  "homeTeamId": "0dffeae0-bb2e-4608-9e19-aa635e70adfc",
+  "awayTeamId": "7354f9c8-7885-4705-9fd0-e26fa6fa7997"
+}

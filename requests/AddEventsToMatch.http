@@ -1,0 +1,375 @@
+### Match commands -> POST /matches/{matchId}/events
+### Set matchId from the CreateMatch.http response, then run blocks top-down.
+### Every MatchCommand is wired in MatchService.handle: lifecycle, scoring,
+### discipline, penalties, VAR and added time. Success is 202 Accepted.
+
+@host = http://localhost:8080
+@matchId = c4aec2c2-a189-4342-a1f4-0339ef54bf27
+
+### ---------------------------------------------------------------------------
+### HAPPY PATH: SCHEDULED -> IN_PROGRESS -> HALF_TIME -> IN_PROGRESS -> COMPLETED
+### ---------------------------------------------------------------------------
+
+### 1. Kick off. Expects 202. Status SCHEDULED -> IN_PROGRESS, scores set to 0-0.
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "MATCH_STARTED"
+}
+
+### 2. Half-time whistle. Expects 202. IN_PROGRESS -> HALF_TIME.
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "FIRST_HALF_ENDED"
+}
+
+### 3. Second half kick off. Expects 202. HALF_TIME -> IN_PROGRESS.
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "SECOND_HALF_STARTED"
+}
+
+### 4. Full time. Expects 202. IN_PROGRESS -> COMPLETED.
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "FULL_TIME"
+}
+
+### 5. Verify the projection reflects the replayed events.
+GET {{host}}/matches
+
+### ---------------------------------------------------------------------------
+### ALTERNATE ENDINGS (use a fresh matchId for each)
+### ---------------------------------------------------------------------------
+
+### 6. Postpone a match that never started. SCHEDULED -> POSTPONED.
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "MATCH_POSTPONED",
+  "reason": "Waterlogged pitch"
+}
+
+### 7. Abandon a match already in progress. IN_PROGRESS -> ABANDONED.
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "MATCH_ABANDONED",
+  "reason": "Floodlight failure",
+  "minute": 63
+}
+
+### ---------------------------------------------------------------------------
+### GUARD RAILS: every one of these must be rejected by the aggregate
+### ---------------------------------------------------------------------------
+
+### 8. Start a match twice. Second call expects failure: "Match must be in scheduled state".
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "MATCH_STARTED"
+}
+
+### 9. Second half without a half-time first. Expects "match is not in half time".
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "SECOND_HALF_STARTED"
+}
+
+### 10. Half-time whistle while at HALF_TIME. Expects "match is not in progress".
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "FIRST_HALF_ENDED"
+}
+
+### 11. Full time on a COMPLETED / SCHEDULED match. Expects "match is not in progress".
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "FULL_TIME"
+}
+
+### 12. Postpone a match that already kicked off. Expects "match must be scheduled".
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "MATCH_POSTPONED",
+  "reason": "Too late to postpone"
+}
+
+### 13. Abandon a match that never started. Expects "match is not in progress".
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "MATCH_ABANDONED",
+  "reason": "Crowd trouble outside the ground",
+  "minute": 0
+}
+
+### 14. Unknown matchId. Expects "match not found".
+POST {{host}}/matches/00000000-0000-0000-0000-000000000000/events
+Content-Type: application/json
+
+{
+  "type": "MATCH_STARTED"
+}
+
+### 15. Unknown discriminator. Expects Jackson to reject the subtype.
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "NOT_A_REAL_EVENT"
+}
+
+### 16. Missing discriminator. Expects Jackson to reject the missing type id.
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "reason": "no type field"
+}
+
+### ---------------------------------------------------------------------------
+### IN-PLAY COMMANDS: all handled. Each needs the match IN_PROGRESS, so run
+### block 1 first. Scoring and cards also need the players to be on the pitch.
+### ---------------------------------------------------------------------------
+
+### 17. Goal scored.
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "GOAL_SCORED",
+  "clubId": "0dffeae0-bb2e-4608-9e19-aa635e70adfc",
+  "playerId": "11111111-1111-1111-1111-111111111111",
+  "minute": 48
+}
+
+### 18. Own goal.
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "OWN_GOAL",
+  "clubId": "7354f9c8-7885-4705-9fd0-e26fa6fa7997",
+  "playerId": "22222222-2222-2222-2222-222222222222",
+  "minute": 31
+}
+
+### 19. Goal canceled. clubId is the club the cancelled goal was credited to,
+### so for an own goal it is the conceding club's opponent.
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "GOAL_CANCELED",
+  "clubId": "0dffeae0-bb2e-4608-9e19-aa635e70adfc",
+  "minute": 24
+}
+
+### 20. Yellow card.
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "YELLOW_CARD_GIVEN",
+  "clubId": "0dffeae0-bb2e-4608-9e19-aa635e70adfc",
+  "playerId": "11111111-1111-1111-1111-111111111111",
+  "minute": 38
+}
+
+### 21. Second yellow for the same player as block 20. There is no
+### SECOND_YELLOW_CARD command: send YELLOW_CARD_GIVEN again and the aggregate
+### emits SECOND_YELLOW_CARD plus RED_CARD_GIVEN itself.
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "YELLOW_CARD_GIVEN",
+  "clubId": "0dffeae0-bb2e-4608-9e19-aa635e70adfc",
+  "playerId": "11111111-1111-1111-1111-111111111111",
+  "minute": 71
+}
+
+### 22. Straight red.
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "RED_CARD_GIVEN",
+  "clubId": "7354f9c8-7885-4705-9fd0-e26fa6fa7997",
+  "playerId": "22222222-2222-2222-2222-222222222222",
+  "minute": 74
+}
+
+### 23. Substitution.
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "SUBSTITUTION",
+  "clubId": "0dffeae0-bb2e-4608-9e19-aa635e70adfc",
+  "playerOutId": "11111111-1111-1111-1111-111111111112",
+  "playerInId": "44444444-4444-4444-4444-444444444444",
+  "minute": 60
+}
+
+### 24. Penalty awarded.
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "PENALTY_AWARDED",
+  "clubId": "0dffeae0-bb2e-4608-9e19-aa635e70adfc",
+  "minute": 78
+}
+
+### 25. Penalty scored.
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "PENALTY_SCORED",
+  "clubId": "0dffeae0-bb2e-4608-9e19-aa635e70adfc",
+  "playerId": "44444444-4444-4444-4444-444444444444",
+  "minute": 79
+}
+
+### 26. Penalty missed.
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "PENALTY_MISSED",
+  "clubId": "7354f9c8-7885-4705-9fd0-e26fa6fa7997",
+  "playerId": "22222222-2222-2222-2222-222222222222",
+  "minute": 85
+}
+
+### 27. VAR check started. Opens a check; only one may be open at a time.
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "VAR_CHECK_STARTED",
+  "reason": "Possible penalty",
+  "minute": 77
+}
+
+### 28. VAR decision. Closes the check opened in block 27. The decision is
+### recorded as free text only: it emits no corrective event of its own, so
+### cancelling a goal or awarding a penalty is a separate command.
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "VAR_DECISION",
+  "decision": "PENALTY_CONFIRMED",
+  "minute": 78
+}
+
+### 29. Added time announced.
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "ADDED_TIME_ANNOUNCED",
+  "addedMinutes": 5
+}
+
+### ---------------------------------------------------------------------------
+### VALIDATION: @NotNull / @Min(0) / @NotBlank on the command records
+### ---------------------------------------------------------------------------
+
+### 30. Negative minute. Expects 400 from @Min(0).
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "GOAL_SCORED",
+  "clubId": "0dffeae0-bb2e-4608-9e19-aa635e70adfc",
+  "playerId": "11111111-1111-1111-1111-111111111111",
+  "minute": -1
+}
+
+### 31. Missing required clubId/playerId. Expects 400 from @NotNull.
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "GOAL_SCORED",
+  "minute": 12
+}
+
+### 32. Blank VAR decision. Expects 400 from @NotBlank.
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "VAR_DECISION",
+  "decision": "",
+  "minute": 78
+}
+
+### 33. Blank VAR check reason. Expects 400 from @NotBlank.
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "VAR_CHECK_STARTED",
+  "reason": "",
+  "minute": 77
+}
+
+### ---------------------------------------------------------------------------
+### VAR GUARD RAILS: an open check must be decided before play moves on
+### ---------------------------------------------------------------------------
+
+### 34. Decision with no check open. Expects "no var check is awaiting a decision".
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "VAR_DECISION",
+  "decision": "NO_OFFENCE",
+  "minute": 78
+}
+
+### 35. Second check while one is open. Run block 27 first.
+### Expects "a var check is awaiting a decision".
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "VAR_CHECK_STARTED",
+  "reason": "Possible offside",
+  "minute": 78
+}
+
+### 36. Half-time whistle with a check still open. Run block 27 first.
+### Expects "a var check is awaiting a decision". FULL_TIME and
+### SECOND_HALF_STARTED are blocked the same way.
+POST {{host}}/matches/{{matchId}}/events
+Content-Type: application/json
+
+{
+  "type": "FIRST_HALF_ENDED"
+}

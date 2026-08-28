@@ -1,0 +1,6 @@
+POST http://localhost:8080/matches/36f9376c-b892-447e-a05a-04fa643677d9/events
+Content-Type: application/json
+
+{
+  "type": "MATCH_STARTED"
+}

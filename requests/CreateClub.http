@@ -1,0 +1,16 @@
+POST http://localhost:8080/api/clubs
+Content-Type: application/json
+
+{
+  "name": "Esperance",
+  "country": "Tunisia"
+}
+
+###
+POST http://localhost:8080/api/clubs
+Content-Type: application/json
+
+{
+  "name": "Sfaxien",
+  "country": "Tunisia"
+}
