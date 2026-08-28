@@ -11,6 +11,9 @@ error:
     default-error-code-strategy: ALL_CAPS
     search-super-class-hierarchy: true
     add-path-to-error: true
+    messages:
+      "[com.raid.lmee.exception.MatchStreamCorruptedException]": Stored match data is inconsistent. The incident has been logged.
+      "[com.raid.lmee.exception.MatchProjectionOutOfSyncException]": Stored match data is inconsistent. The incident has been logged.
 
 springdoc:
   pathsToMatch: /, /api/**

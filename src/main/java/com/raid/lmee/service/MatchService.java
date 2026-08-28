@@ -3,6 +3,7 @@ package com.raid.lmee.service;
 import com.raid.lmee.domain.*;
 import com.raid.lmee.domain.aggregate.MatchAggregate;
 import com.raid.lmee.domain.event.MatchEvent;
+import com.raid.lmee.exception.MatchNotFoundException;
 import com.raid.lmee.model.MatchEventType;
 import com.raid.lmee.model.MatchResponse;
 import com.raid.lmee.model.command.MatchCommand;
@@ -94,7 +95,7 @@ public class MatchService {
 
     public void handle(UUID matchId, @Valid MatchCommand command) {
         if (!matchRepository.existsById(matchId)) {
-            throw new IllegalStateException("match not found");
+            throw new MatchNotFoundException(matchId);
         }
         List<MatchEvent> history = loadHistoryFor(matchId);
         MatchAggregate aggregate = MatchAggregate.reconstitute(history);

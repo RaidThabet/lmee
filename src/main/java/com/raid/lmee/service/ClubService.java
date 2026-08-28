@@ -1,9 +1,9 @@
 package com.raid.lmee.service;
 
 import com.raid.lmee.domain.Club;
+import com.raid.lmee.exception.ClubNotFoundException;
 import com.raid.lmee.model.ClubDTO;
 import com.raid.lmee.repos.ClubRepository;
-import com.raid.lmee.util.NotFoundException;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -33,7 +33,7 @@ public class ClubService {
     public ClubDTO get(final UUID id) {
         return clubRepository.findById(id)
                 .map(club -> mapToDTO(club, new ClubDTO()))
-                .orElseThrow(NotFoundException::new);
+                .orElseThrow(() -> new ClubNotFoundException(id));
     }
 
     public UUID create(final ClubDTO clubDTO) {
@@ -44,14 +44,14 @@ public class ClubService {
 
     public void update(final UUID id, final ClubDTO clubDTO) {
         final Club club = clubRepository.findById(id)
-                .orElseThrow(NotFoundException::new);
+                .orElseThrow(() -> new ClubNotFoundException(id));
         mapToEntity(clubDTO, club);
         clubRepository.save(club);
     }
 
     public void delete(final UUID id) {
         final Club club = clubRepository.findById(id)
-                .orElseThrow(NotFoundException::new);
+                .orElseThrow(() -> new ClubNotFoundException(id));
         clubRepository.delete(club);
     }
 

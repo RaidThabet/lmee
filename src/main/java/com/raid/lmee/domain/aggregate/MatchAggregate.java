@@ -1,6 +1,18 @@
 package com.raid.lmee.domain.aggregate;
 
 import com.raid.lmee.domain.event.MatchEvent;
+import com.raid.lmee.exception.ClubNotInMatchException;
+import com.raid.lmee.exception.InvalidMatchStateException;
+import com.raid.lmee.exception.MatchStreamCorruptedException;
+import com.raid.lmee.exception.NoGoalToCancelException;
+import com.raid.lmee.exception.NoPendingPenaltyException;
+import com.raid.lmee.exception.NoVarCheckInProgressException;
+import com.raid.lmee.exception.PenaltyAlreadyPendingException;
+import com.raid.lmee.exception.PlayerAlreadyOnPitchException;
+import com.raid.lmee.exception.PlayerAlreadySubstitutedException;
+import com.raid.lmee.exception.PlayerSentOffException;
+import com.raid.lmee.exception.SubstitutionLimitReachedException;
+import com.raid.lmee.exception.VarCheckInProgressException;
 import com.raid.lmee.model.MatchStatus;
 import lombok.Data;
 
@@ -9,6 +21,8 @@ import java.util.*;
 
 @Data
 public class MatchAggregate {
+
+    public static final int MAX_SUBSTITUTIONS = 5;
 
     private UUID matchId;
 
@@ -77,7 +91,7 @@ public class MatchAggregate {
 
     public void startMatch() {
         if (status != MatchStatus.SCHEDULED || half != null) {
-            throw new IllegalStateException("Match must be in scheduled state");
+            throw new InvalidMatchStateException(matchId, status, half, "it must be scheduled and not yet kicked off");
         }
         MatchEvent event = new MatchEvent.MatchStarted(matchId, OffsetDateTime.now());
         apply(event);
@@ -86,7 +100,7 @@ public class MatchAggregate {
 
     public void endFirstHalf() {
         if (status != MatchStatus.IN_PROGRESS || half != 1) {
-            throw new IllegalStateException("match is not in progress or in first half");
+            throw new InvalidMatchStateException(matchId, status, half, "the first half must be in progress");
         }
         requireNoVarCheckInProgress();
         MatchEvent event = new MatchEvent.FirstHalfEnded(matchId, OffsetDateTime.now());
@@ -96,7 +110,7 @@ public class MatchAggregate {
 
     public void startSecondHalf() {
         if (status != MatchStatus.HALF_TIME) {
-            throw new IllegalStateException("match is not in half time");
+            throw new InvalidMatchStateException(matchId, status, half, "it must be at half time");
         }
         requireNoVarCheckInProgress();
         MatchEvent event = new MatchEvent.SecondHalfStarted(matchId, OffsetDateTime.now());
@@ -106,7 +120,7 @@ public class MatchAggregate {
 
     public void endMatch() {
         if (status != MatchStatus.IN_PROGRESS || half != 2) {
-            throw new IllegalStateException("match is not in progress or in second half");
+            throw new InvalidMatchStateException(matchId, status, half, "the second half must be in progress");
         }
         requireNoVarCheckInProgress();
         MatchEvent event = new MatchEvent.FullTime(matchId, OffsetDateTime.now());
@@ -115,9 +129,7 @@ public class MatchAggregate {
     }
 
     public void abandonMatch(String reason, int minute) {
-        if (status != MatchStatus.IN_PROGRESS) {
-            throw new IllegalStateException("match is not in progress");
-        }
+        requireInProgress();
         MatchEvent event = new MatchEvent.MatchAbandoned(matchId, reason, minute, OffsetDateTime.now());
         apply(event);
         uncommittedEvents.add(event);
@@ -125,7 +137,7 @@ public class MatchAggregate {
 
     public void postponeMatch(String reason) {
         if (status != MatchStatus.SCHEDULED) {
-            throw new IllegalStateException("match must be scheduled");
+            throw new InvalidMatchStateException(matchId, status, half, "it must still be scheduled");
         }
         MatchEvent event = new MatchEvent.MatchPostponed(matchId, reason, OffsetDateTime.now());
         apply(event);
@@ -180,7 +192,7 @@ public class MatchAggregate {
         requireInProgress();
         requireParticipant(clubId);
         if (scoreOf(clubId) == 0) {
-            throw new IllegalStateException("club has no goal to cancel");
+            throw new NoGoalToCancelException(matchId, clubId);
         }
 
         MatchEvent event = new MatchEvent.GoalCanceled(matchId, OffsetDateTime.now(), clubId, minute);
@@ -192,7 +204,7 @@ public class MatchAggregate {
         requireInProgress();
         requireParticipant(clubId);
         if (pendingPenaltyClubId != null) {
-            throw new IllegalStateException("a penalty is already awaiting its outcome");
+            throw new PenaltyAlreadyPendingException(matchId, pendingPenaltyClubId);
         }
 
         MatchEvent event = new MatchEvent.PenaltyAwarded(matchId, OffsetDateTime.now(), clubId, minute);
@@ -247,7 +259,10 @@ public class MatchAggregate {
             apply(redCardEvent);
             uncommittedEvents.addAll(List.of(secondYellowEvent, redCardEvent));
         } else {
-            throw new IllegalStateException("incorrect player yellows count");
+            throw new MatchStreamCorruptedException(
+                    matchId,
+                    "player " + playerId + " holds " + yellows(playerId) + " yellow cards without being sent off"
+            );
         }
 
     }
@@ -258,7 +273,7 @@ public class MatchAggregate {
 
     private void requirePlayerNotSentOff(UUID playerId) {
         if (sentOffPlayers.contains(playerId)) {
-            throw new IllegalStateException("player is sent off");
+            throw new PlayerSentOffException(matchId, playerId);
         }
     }
 
@@ -287,35 +302,26 @@ public class MatchAggregate {
     }
 
     private void requireClubDidNotFinishSubs(UUID clubId) {
-        if (isHome(clubId)) {
-            if (homeTally.getSubstitutions() == 5) {
-                throw new IllegalStateException("club already reached maximum subs");
-            }
-        } else {
-            if (awayTally.getSubstitutions() == 5) {
-                throw new IllegalStateException("club already reached maximum subs");
-            }
+        TeamTally tally = isHome(clubId) ? homeTally : awayTally;
+        if (tally.getSubstitutions() == MAX_SUBSTITUTIONS) {
+            throw new SubstitutionLimitReachedException(matchId, clubId, MAX_SUBSTITUTIONS);
         }
     }
 
     private void requirePlayerNotOnThePitch(UUID playerInId) {
-        if (sentOffPlayers.contains(playerInId)) {
-            throw new IllegalStateException("player has been sent off");
-        }
+        requirePlayerNotSentOff(playerInId);
         if (subbedOutPlayers.contains(playerInId)) {
-            throw new IllegalStateException("player has been substituted off and cannot return");
+            throw new PlayerAlreadySubstitutedException(matchId, playerInId);
         }
         if (subbedInPlayers.contains(playerInId)) {
-            throw new IllegalStateException("player is already on the pitch");
+            throw new PlayerAlreadyOnPitchException(matchId, playerInId);
         }
     }
 
     private void requirePlayerOnThePitch(UUID playerOutId) {
-        if (sentOffPlayers.contains(playerOutId)) {
-            throw new IllegalStateException("player has been sent off");
-        }
+        requirePlayerNotSentOff(playerOutId);
         if (subbedOutPlayers.contains(playerOutId)) {
-            throw new IllegalStateException("player has already been substituted off");
+            throw new PlayerAlreadySubstitutedException(matchId, playerOutId);
         }
     }
 
@@ -333,7 +339,7 @@ public class MatchAggregate {
     public void recordVarDecision(String decision, int minute) {
         requireInProgress();
         if (!varCheckInProgress) {
-            throw new IllegalStateException("no var check is awaiting a decision");
+            throw new NoVarCheckInProgressException(matchId);
         }
 
         MatchEvent event = new MatchEvent.VarDecision(matchId, OffsetDateTime.now(), decision, minute);
@@ -356,26 +362,26 @@ public class MatchAggregate {
 
     private void requireNoVarCheckInProgress() {
         if (varCheckInProgress) {
-            throw new IllegalStateException("a var check is awaiting a decision");
+            throw new VarCheckInProgressException(matchId);
         }
     }
 
     private void requireInProgress() {
         if (status != MatchStatus.IN_PROGRESS) {
-            throw new IllegalStateException("match is not in progress");
+            throw new InvalidMatchStateException(matchId, status, half, "it must be in progress");
         }
     }
 
     private void requireParticipant(UUID clubId) {
         if (!homeClubId.equals(clubId) && !awayClubId.equals(clubId)) {
-            throw new IllegalArgumentException("club does not take part in this match");
+            throw new ClubNotInMatchException(matchId, clubId);
         }
     }
 
     private void requirePendingPenaltyFor(UUID clubId) {
         requireParticipant(clubId);
         if (!clubId.equals(pendingPenaltyClubId)) {
-            throw new IllegalStateException("no penalty is awarded to this club");
+            throw new NoPendingPenaltyException(matchId, clubId);
         }
     }
 
@@ -506,7 +512,7 @@ public class MatchAggregate {
                     this.awayTally.addSubstitution();
                 }
             }
-            default -> throw new IllegalStateException("Unexpected value: " + event);
+            default -> throw new MatchStreamCorruptedException(matchId, "unexpected event " + event);
         }
     }
 

@@ -4,6 +4,8 @@ import com.raid.lmee.domain.ClubMatchId;
 import com.raid.lmee.domain.Match;
 import com.raid.lmee.domain.MatchState;
 import com.raid.lmee.domain.event.MatchEvent;
+import com.raid.lmee.exception.MatchNotFoundException;
+import com.raid.lmee.exception.MatchProjectionOutOfSyncException;
 import com.raid.lmee.model.MatchStatus;
 import com.raid.lmee.repos.ClubMatchRepository;
 import com.raid.lmee.repos.MatchRepository;
@@ -12,7 +14,6 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -28,12 +29,8 @@ public class MatchProjection {
     private final ClubMatchRepository clubMatchRepository;
 
     public void on(MatchEvent.MatchScheduled event) {
-        Optional<Match> matchOptional = matchRepository.findById(event.matchId());
-        if (matchOptional.isEmpty()) {
-            throw new RuntimeException("match not found");
-            // TODO: custom exception
-        }
-        Match match = matchOptional.get();
+        Match match = matchRepository.findById(event.matchId())
+                .orElseThrow(() -> new MatchNotFoundException(event.matchId()));
         MatchState matchState = new MatchState();
         matchState.setMatch(match);
         matchState.setStatus(MatchStatus.SCHEDULED);
@@ -183,7 +180,7 @@ public class MatchProjection {
 
         Integer current = creditHome ? matchState.getHomeScore() : matchState.getAwayScore();
         if (current == null) {
-            throw new IllegalStateException("match " + matchId + " has no score to adjust; it was never started");
+            throw new MatchProjectionOutOfSyncException(matchId, "no score to adjust; the match was never started");
         }
 
         if (creditHome) {
@@ -197,12 +194,15 @@ public class MatchProjection {
 
     private MatchState loadState(UUID matchId) {
         return matchStateRepository.findById(matchId)
-                .orElseThrow(() -> new IllegalStateException("no match state projected for match " + matchId));
+                .orElseThrow(() -> new MatchProjectionOutOfSyncException(matchId, "no match state row exists"));
     }
 
     private boolean isHomeSide(UUID matchId, UUID clubId) {
         return clubMatchRepository.findById(new ClubMatchId(matchId, clubId))
-                .orElseThrow(() -> new IllegalStateException("club " + clubId + " does not take part in match " + matchId))
+                .orElseThrow(() -> new MatchProjectionOutOfSyncException(
+                        matchId,
+                        "club " + clubId + " has no row for this match"
+                ))
                 .getIsHome();
     }
 }

@@ -2,10 +2,11 @@ package com.raid.lmee.service;
 
 import com.raid.lmee.domain.Club;
 import com.raid.lmee.domain.Player;
+import com.raid.lmee.exception.ClubNotFoundException;
+import com.raid.lmee.exception.PlayerNotFoundException;
 import com.raid.lmee.model.PlayerDTO;
 import com.raid.lmee.repos.ClubRepository;
 import com.raid.lmee.repos.PlayerRepository;
-import com.raid.lmee.util.NotFoundException;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
@@ -35,7 +36,7 @@ public class PlayerService {
     public PlayerDTO get(final UUID id) {
         return playerRepository.findById(id)
                 .map(player -> mapToDTO(player, new PlayerDTO()))
-                .orElseThrow(NotFoundException::new);
+                .orElseThrow(() -> new PlayerNotFoundException(id));
     }
 
     public UUID create(final PlayerDTO playerDTO) {
@@ -46,14 +47,14 @@ public class PlayerService {
 
     public void update(final UUID id, final PlayerDTO playerDTO) {
         final Player player = playerRepository.findById(id)
-                .orElseThrow(NotFoundException::new);
+                .orElseThrow(() -> new PlayerNotFoundException(id));
         mapToEntity(playerDTO, player);
         playerRepository.save(player);
     }
 
     public void delete(final UUID id) {
         final Player player = playerRepository.findById(id)
-                .orElseThrow(NotFoundException::new);
+                .orElseThrow(() -> new PlayerNotFoundException(id));
         playerRepository.delete(player);
     }
 
@@ -67,7 +68,7 @@ public class PlayerService {
     private Player mapToEntity(final PlayerDTO playerDTO, final Player player) {
         player.setName(playerDTO.getName());
         final Club club = playerDTO.getClub() == null ? null : clubRepository.findById(playerDTO.getClub())
-                .orElseThrow(() -> new NotFoundException("club not found"));
+                .orElseThrow(() -> new ClubNotFoundException(playerDTO.getClub()));
         player.setClub(club);
         return player;
     }
