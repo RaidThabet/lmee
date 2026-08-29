@@ -2,6 +2,7 @@ package com.raid.lmee.rest;
 
 import com.raid.lmee.model.CreateMatchRequest;
 import com.raid.lmee.model.CreateMatchResponse;
+import com.raid.lmee.model.MatchEventDTO;
 import com.raid.lmee.model.MatchResponse;
 import com.raid.lmee.model.command.MatchCommand;
 import com.raid.lmee.service.MatchService;
@@ -27,6 +28,13 @@ public class MatchResource {
         return ResponseEntity.ok(matchService.findAll());
     }
 
+    @GetMapping("{matchId}")
+    public ResponseEntity<MatchResponse> getMatch(
+            @PathVariable UUID matchId
+    ) {
+        return ResponseEntity.ok(matchService.findMatch(matchId));
+    }
+
     @PostMapping
     public ResponseEntity<CreateMatchResponse> registerMatch(
             @RequestBody @Valid CreateMatchRequest request
@@ -41,6 +49,15 @@ public class MatchResource {
         CreateMatchResponse response = new CreateMatchResponse(createdMatchId);
 
         return new ResponseEntity<>(response, CREATED);
+    }
+
+    @GetMapping("{matchId}/events")
+    public ResponseEntity<List<MatchEventDTO>> getMatchEvents(
+            @PathVariable UUID matchId
+    ) {
+        List<MatchEventDTO> events = matchService.findMatchEvents(matchId);
+
+        return ResponseEntity.ok(events);
     }
 
     // TODO: response entity of the event id?

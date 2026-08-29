@@ -1,6 +1,8 @@
 package com.raid.lmee.repos;
 
 import com.raid.lmee.domain.Player;
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -8,5 +10,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface PlayerRepository extends JpaRepository<Player, UUID> {
 
     Player findFirstByClubId(UUID id);
+
+    List<Player> findByClubIdIn(Collection<UUID> clubIds);
 
 }

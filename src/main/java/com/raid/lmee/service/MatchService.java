@@ -7,6 +7,8 @@ import com.raid.lmee.exception.ClubNotFoundException;
 import com.raid.lmee.exception.MatchNotFoundException;
 import com.raid.lmee.exception.PlayerNotFoundException;
 import com.raid.lmee.exception.PlayerNotInClubException;
+import com.raid.lmee.mapper.MatchEventDTOMapper;
+import com.raid.lmee.model.MatchEventDTO;
 import com.raid.lmee.model.MatchEventType;
 import com.raid.lmee.model.MatchResponse;
 import com.raid.lmee.model.command.MatchCommand;
@@ -48,6 +50,8 @@ public class MatchService {
 
     private final MatchProjection matchProjection;
 
+    private final MatchEventDTOMapper matchEventDTOMapper;
+
     private final ObjectMapper objectMapper;
 
     private final EntityManager entityManager;
@@ -59,6 +63,13 @@ public class MatchService {
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
+    }
+
+    public MatchResponse findMatch(UUID matchId) {
+        Match match = matchRepository.findByIdWithClubsAndState(matchId)
+                .orElseThrow(() -> new MatchNotFoundException(matchId));
+
+        return mapToResponse(match);
     }
 
     private MatchResponse mapToResponse(Match match) {
@@ -101,6 +112,21 @@ public class MatchService {
         dispatchEvents(aggregate);
 
         return aggregate.getMatchId();
+    }
+
+    public List<MatchEventDTO> findMatchEvents(UUID matchId) {
+        if (!matchRepository.existsById(matchId)) {
+            throw new MatchNotFoundException(matchId);
+        }
+
+        List<MatchEventDTOMapper.SequencedEvent> history = loadEventRowsFor(matchId).stream()
+                .map(row -> new MatchEventDTOMapper.SequencedEvent(
+                        row.getSequenceNumber(),
+                        deserialize(row.getEventType(), row.getPayload())
+                ))
+                .toList();
+
+        return matchEventDTOMapper.toDTOs(history);
     }
 
     public void handle(UUID matchId, @Valid MatchCommand command) {
@@ -173,11 +199,13 @@ public class MatchService {
         }
     }
 
-    private List<MatchEvent> loadHistoryFor(UUID matchId) {
-        Sort sort = Sort.by("occurredAt").ascending();
-        List<MatchEventStore> events = matchEventStoreRepository.findByMatchId(matchId, sort);
+    private List<MatchEventStore> loadEventRowsFor(UUID matchId) {
+        Sort sort = Sort.by("sequenceNumber").ascending();
+        return matchEventStoreRepository.findByMatchId(matchId, sort);
+    }
 
-        return events.stream()
+    private List<MatchEvent> loadHistoryFor(UUID matchId) {
+        return loadEventRowsFor(matchId).stream()
                 .map(matchEvent -> deserialize(matchEvent.getEventType(), matchEvent.getPayload()))
                 .toList();
     }
