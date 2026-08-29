@@ -4,7 +4,7 @@
 ### discipline, penalties, VAR and added time. Success is 202 Accepted.
 
 @host = http://localhost:8080
-@matchId = defb824d-7536-41ef-82fc-655189cfaef1
+@matchId = 37813eb3-005d-45e6-8e1b-03fdc375182b
 
 ### Clubs and players below are the real rows seeded by players_seed.sql.
 ### Home: Esperance. Away: Sfaxien.

@@ -16,10 +16,12 @@ import com.raid.lmee.repos.ClubRepository;
 import com.raid.lmee.repos.MatchEventStoreRepository;
 import com.raid.lmee.repos.MatchRepository;
 import com.raid.lmee.repos.PlayerRepository;
+import com.raid.lmee.websocket.MatchEventsCommitted;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
@@ -49,6 +51,8 @@ public class MatchService {
     private final ObjectMapper objectMapper;
 
     private final EntityManager entityManager;
+
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     public List<MatchResponse> findAll() {
         return matchRepository.findAllWithClubsAndState()
@@ -234,6 +238,10 @@ public class MatchService {
         appendToEventStore(events, aggregate.getMatchId());
         events.forEach(this::routeToProjections);
         aggregate.clearUncommittedEvents();
+
+        applicationEventPublisher.publishEvent(
+                new MatchEventsCommitted(aggregate.getMatchId(), events)
+        );
     }
 
     private void appendToEventStore(List<MatchEvent> events, UUID matchId) {
@@ -281,6 +289,5 @@ public class MatchService {
             case MatchEvent.AddedTimeAnnounced e -> matchProjection.on(e);
         }
     }
-
 
 }
