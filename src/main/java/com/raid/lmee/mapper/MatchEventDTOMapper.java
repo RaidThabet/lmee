@@ -28,10 +28,16 @@ public class MatchEventDTOMapper {
                 .toList();
     }
 
-    /**
-     * Loads both squads in one query. Every player an event can name is on one of the two teams, so
-     * this needs no per-event id collection.
-     */
+    public List<MatchEventDTO> toDTOs(List<SequencedEvent> appendedEvents, UUID homeClubId, UUID awayClubId) {
+        Map<UUID, String> playerNames = playerRepository.findByClubIdIn(List.of(homeClubId, awayClubId))
+                .stream()
+                .collect(Collectors.toMap(Player::getId, Player::getName));
+
+        return appendedEvents.stream()
+                .map(sequenced -> toDTO(sequenced, playerNames, homeClubId))
+                .toList();
+    }
+
     private Map<UUID, String> loadSquadNames(MatchEvent.MatchScheduled scheduled) {
         if (scheduled == null) {
             return Map.of();
@@ -42,10 +48,6 @@ public class MatchEventDTOMapper {
                 .collect(Collectors.toMap(Player::getId, Player::getName));
     }
 
-    /**
-     * The scheduling event is the only place the stream itself records the two clubs, so it supplies
-     * both the squads to load and the answer to {@code isHomeClub}.
-     */
     private MatchEvent.MatchScheduled scheduledEventOf(List<SequencedEvent> history) {
         for (SequencedEvent sequenced : history) {
             if (sequenced.event() instanceof MatchEvent.MatchScheduled scheduled) {

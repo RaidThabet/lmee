@@ -29,6 +29,7 @@ import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -263,18 +264,25 @@ public class MatchService {
 
     private void dispatchEvents(MatchAggregate aggregate) {
         List<MatchEvent> events = aggregate.getUncommittedEvents();
-        appendToEventStore(events, aggregate.getMatchId());
+        List<MatchEventDTOMapper.SequencedEvent> appended = appendToEventStore(events, aggregate.getMatchId());
         events.forEach(this::routeToProjections);
         aggregate.clearUncommittedEvents();
 
+        List<MatchEventDTO> eventDTOs = matchEventDTOMapper.toDTOs(
+                appended,
+                aggregate.getHomeClubId(),
+                aggregate.getAwayClubId()
+        );
+
         applicationEventPublisher.publishEvent(
-                new MatchEventsCommitted(aggregate.getMatchId(), events)
+                new MatchEventsCommitted(aggregate.getMatchId(), eventDTOs)
         );
     }
 
-    private void appendToEventStore(List<MatchEvent> events, UUID matchId) {
+    private List<MatchEventDTOMapper.SequencedEvent> appendToEventStore(List<MatchEvent> events, UUID matchId) {
         Match match = entityManager.getReference(Match.class, matchId);
         AtomicInteger baseSequenceNumber = new AtomicInteger(matchEventStoreRepository.countByMatchId(matchId));
+        List<MatchEventDTOMapper.SequencedEvent> appended = new ArrayList<>();
         events.forEach(event -> {
             String payload = objectMapper.writeValueAsString(event);
             MatchEventType eventType = event.eventType();
@@ -289,8 +297,10 @@ public class MatchService {
             newEvent.setOccurredAt(occurredAt);
 
             matchEventStoreRepository.save(newEvent);
+            appended.add(new MatchEventDTOMapper.SequencedEvent(sequenceNumber, event));
         });
 
+        return appended;
     }
 
     private void routeToProjections(MatchEvent event) {

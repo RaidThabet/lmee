@@ -1,6 +1,6 @@
 package com.raid.lmee.websocket;
 
-import com.raid.lmee.domain.event.MatchEvent;
+import com.raid.lmee.model.MatchEventDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
@@ -23,12 +23,12 @@ public class WebsocketPublisher {
         publish(committed.matchId(), committed.events());
     }
 
-    void publish(UUID matchId, List<MatchEvent> events) {
+    void publish(UUID matchId, List<MatchEventDTO> events) {
         String destination = MATCH_TOPIC_PREFIX + matchId;
 
         events.forEach(event -> messagingTemplate.convertAndSend(
                 destination,
-                new MatchEventMessage(event.eventType(), event)
+                new MatchEventMessage(event.type(), event)
         ));
     }
 }
