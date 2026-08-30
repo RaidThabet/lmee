@@ -34,7 +34,6 @@ CREATE TABLE matches_states(away_reds    INTEGER NOT NULL,
                             PRIMARY KEY (match_id));
 CREATE TABLE match_event_store(sequence_number INTEGER NOT NULL,
                                 date_created    TIMESTAMP(6) WITH TIME ZONE NOT NULL,
-                                last_updated    TIMESTAMP(6) WITH TIME ZONE NOT NULL,
                                 occurred_at      TIMESTAMP(6) WITH TIME ZONE NOT NULL,
                                 id              UUID NOT NULL,
                                 match_id        UUID NOT NULL,

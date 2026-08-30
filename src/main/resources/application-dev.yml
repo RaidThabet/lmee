@@ -3,14 +3,14 @@ spring:
     import: optional:file:../.env.dev[.properties]
   flyway:
     clean-disabled: true
-    enabled: false
+    enabled: true
   datasource:
     url: ${LMEE_POSTGRES_DB}
     username: ${LMEE_POSTGRES_USER}
     password: ${LMEE_POSTGRES_PASSWORD}
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
   docker:
     compose:
       lifecycle-management: start_and_stop
