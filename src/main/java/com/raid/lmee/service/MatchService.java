@@ -5,12 +5,14 @@ import com.raid.lmee.domain.aggregate.MatchAggregate;
 import com.raid.lmee.domain.event.MatchEvent;
 import com.raid.lmee.exception.ClubNotFoundException;
 import com.raid.lmee.exception.MatchNotFoundException;
+import com.raid.lmee.exception.MatchProjectionOutOfSyncException;
 import com.raid.lmee.exception.PlayerNotFoundException;
 import com.raid.lmee.exception.PlayerNotInClubException;
 import com.raid.lmee.mapper.MatchEventDTOMapper;
 import com.raid.lmee.model.MatchEventDTO;
 import com.raid.lmee.model.MatchEventType;
 import com.raid.lmee.model.MatchResponse;
+import com.raid.lmee.model.MatchStateDTO;
 import com.raid.lmee.model.command.MatchCommand;
 import com.raid.lmee.projection.MatchProjection;
 import com.raid.lmee.repos.ClubMatchRepository;
@@ -71,6 +73,31 @@ public class MatchService {
                 .orElseThrow(() -> new MatchNotFoundException(matchId));
 
         return mapToResponse(match);
+    }
+
+    public MatchStateDTO findMatchState(UUID matchId) {
+        Match match = matchRepository.findByIdWithClubsAndState(matchId)
+                .orElseThrow(() -> new MatchNotFoundException(matchId));
+
+        MatchState matchState = match.getMatchState();
+        if (matchState == null) {
+            throw new MatchProjectionOutOfSyncException(matchId, "no match state row exists");
+        }
+
+        return new MatchStateDTO(
+                matchId,
+                matchState.getStatus(),
+                clubName(match, true),
+                clubName(match, false),
+                matchState.getHomeScore(),
+                matchState.getAwayScore(),
+                matchState.getHomeYellows(),
+                matchState.getAwayYellows(),
+                matchState.getHomeReds(),
+                matchState.getAwayReds(),
+                matchState.getHomeSubs(),
+                matchState.getAwaySubs()
+        );
     }
 
     private MatchResponse mapToResponse(Match match) {

@@ -1,9 +1,6 @@
 package com.raid.lmee.rest;
 
-import com.raid.lmee.model.CreateMatchRequest;
-import com.raid.lmee.model.CreateMatchResponse;
-import com.raid.lmee.model.MatchEventDTO;
-import com.raid.lmee.model.MatchResponse;
+import com.raid.lmee.model.*;
 import com.raid.lmee.model.command.MatchCommand;
 import com.raid.lmee.service.MatchService;
 import jakarta.validation.Valid;
@@ -69,6 +66,13 @@ public class MatchResource {
         matchService.handle(matchId, command);
 
         return ResponseEntity.accepted().build();
+    }
+
+    @GetMapping("{matchId}/state")
+    public ResponseEntity<MatchStateDTO> getMatchState(
+            @PathVariable UUID matchId
+    ) {
+        return ResponseEntity.ok(matchService.findMatchState(matchId));
     }
 
 }
