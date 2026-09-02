@@ -5,6 +5,7 @@ spring:
       maximum-pool-size: 10
   jpa:
     open-in-view: false
+
 error:
   handling:
     http-status-in-json-response: true

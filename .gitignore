@@ -37,3 +37,5 @@ build/
 
 .env
 .env.dev
+requests/http-client.private.env.json
+requests/GetToken.http

@@ -3,26 +3,26 @@
 ### Every MatchCommand is wired in MatchService.handle: lifecycle, scoring,
 ### discipline, penalties, VAR and added time. Success is 202 Accepted.
 
-@host = http://localhost:8080
-@matchId = 37813eb3-005d-45e6-8e1b-03fdc375182b
+### host comes from http-client.env.json (env "dev").
+@matchId = 671eaf85-f7da-48c2-9ee9-cacca507ce04
 
 ### Clubs and players below are the real rows seeded by players_seed.sql.
 ### Home: Esperance. Away: Sfaxien.
-@esperance = 0dffeae0-bb2e-4608-9e19-aa635e70adfc
-@sfaxien = 7354f9c8-7885-4705-9fd0-e26fa6fa7997
+@esperance = b0e02ba6-5e99-41b9-a2b2-3b2388516e91
+@sfaxien = 4da6055e-9593-474d-b4d3-d8a73e900c20
 
 ### Esperance players
-@boualia = 2de218fd-e3e1-4614-937f-ff925a41f0ef
-@meriah = 46e3d23f-44c2-4803-b845-0a2d888e74a5
-@rafia = 2a756aed-0440-4847-9075-6f9d04a21fd0
-@msakni = eaf770b7-8060-4b9f-8ab8-2af6edd5f35f
-@belaili = 75c55e8e-7184-40b9-a79c-bccd5ca56653
+@boualia = 615c0b43-860e-417e-9616-c795c7c924ce
+@meriah = 3e9ebcfc-a11b-4069-b30e-ee8a8a7a8d36
+@rafia = 7231de74-73c5-4598-b1ff-c2be3918d5db
+@msakni = dbd41b6c-d6d4-48c3-ba00-3b5e7687903d
+@belaili = 6c01cf40-7db0-47ba-8f97-37cb11278f0f
 
 ### Sfaxien players
-@omarBenAli = 02c8a2c6-a150-4449-b711-0ba24a73d447
-@maaloul = 2d2ee346-5b1d-430b-9f23-9dcba8392cc1
-@belwafi = 66549573-e83e-4af3-8caf-2edac7757d0a
-@onana = d8e85a30-f2eb-474a-9b72-bffb742f708f
+@omarBenAli = 8f71c0b9-2c8a-4fe6-a042-555a4942e2d2
+@maaloul = c310664c-30ea-4a4a-bec1-a17d6548fe9a
+@belwafi = dbe970f7-95a0-4938-95de-463151c809c8
+@onana = 8486af18-04c8-4b37-bced-ea7dfd0630e7
 
 ### A UUID that is in no players row at all.
 @ghostPlayer = deadbeef-0000-0000-0000-000000000000
@@ -37,47 +37,52 @@
 ### ---------------------------------------------------------------------------
 
 ### 1. Kick off. Expects 202. Status SCHEDULED -> IN_PROGRESS, scores set to 0-0.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "MATCH_STARTED"
 }
 
 ### 2. Half-time whistle. Expects 202. IN_PROGRESS -> HALF_TIME.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "FIRST_HALF_ENDED"
 }
 
 ### 3. Second half kick off. Expects 202. HALF_TIME -> IN_PROGRESS.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "SECOND_HALF_STARTED"
 }
 
 ### 4. Full time. Expects 202. IN_PROGRESS -> COMPLETED.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "FULL_TIME"
 }
 
 ### 5. Verify the projection reflects the replayed events.
-GET {{host}}/matches
+GET http://localhost:8080/matches
 
 ### ---------------------------------------------------------------------------
 ### ALTERNATE ENDINGS (use a fresh matchId for each)
 ### ---------------------------------------------------------------------------
 
 ### 6. Postpone a match that never started. SCHEDULED -> POSTPONED.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "MATCH_POSTPONED",
@@ -85,8 +90,9 @@ Content-Type: application/json
 }
 
 ### 7. Abandon a match already in progress. IN_PROGRESS -> ABANDONED.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "MATCH_ABANDONED",
@@ -99,40 +105,45 @@ Content-Type: application/json
 ### ---------------------------------------------------------------------------
 
 ### 8. Start a match twice. Second call expects failure: "Match must be in scheduled state".
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "MATCH_STARTED"
 }
 
 ### 9. Second half without a half-time first. Expects "match is not in half time".
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "SECOND_HALF_STARTED"
 }
 
 ### 10. Half-time whistle while at HALF_TIME. Expects "match is not in progress".
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "FIRST_HALF_ENDED"
 }
 
 ### 11. Full time on a COMPLETED / SCHEDULED match. Expects "match is not in progress".
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "FULL_TIME"
 }
 
 ### 12. Postpone a match that already kicked off. Expects "match must be scheduled".
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "MATCH_POSTPONED",
@@ -140,8 +151,9 @@ Content-Type: application/json
 }
 
 ### 13. Abandon a match that never started. Expects "match is not in progress".
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "MATCH_ABANDONED",
@@ -150,24 +162,27 @@ Content-Type: application/json
 }
 
 ### 14. Unknown matchId. Expects "match not found".
-POST {{host}}/matches/00000000-0000-0000-0000-000000000000/events
+POST http://localhost:8080/matches/00000000-0000-0000-0000-000000000000/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "MATCH_STARTED"
 }
 
 ### 15. Unknown discriminator. Expects Jackson to reject the subtype.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "NOT_A_REAL_EVENT"
 }
 
 ### 16. Missing discriminator. Expects Jackson to reject the missing type id.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "reason": "no type field"
@@ -179,8 +194,9 @@ Content-Type: application/json
 ### ---------------------------------------------------------------------------
 
 ### 17. Goal scored.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "GOAL_SCORED",
@@ -190,8 +206,9 @@ Content-Type: application/json
 }
 
 ### 18. Own goal.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "OWN_GOAL",
@@ -202,8 +219,9 @@ Content-Type: application/json
 
 ### 19. Goal canceled. clubId is the club the cancelled goal was credited to,
 ### so for an own goal it is the conceding club's opponent.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "GOAL_CANCELED",
@@ -212,8 +230,9 @@ Content-Type: application/json
 }
 
 ### 20. Yellow card.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "YELLOW_CARD_GIVEN",
@@ -225,8 +244,9 @@ Content-Type: application/json
 ### 21. Second yellow for the same player as block 20. There is no
 ### SECOND_YELLOW_CARD command: send YELLOW_CARD_GIVEN again and the aggregate
 ### emits SECOND_YELLOW_CARD plus RED_CARD_GIVEN itself.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "YELLOW_CARD_GIVEN",
@@ -236,8 +256,9 @@ Content-Type: application/json
 }
 
 ### 22. Straight red.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "RED_CARD_GIVEN",
@@ -247,8 +268,9 @@ Content-Type: application/json
 }
 
 ### 23. Substitution. Rafia off, Msakni on.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "SUBSTITUTION",
@@ -259,8 +281,9 @@ Content-Type: application/json
 }
 
 ### 24. Penalty awarded.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "PENALTY_AWARDED",
@@ -269,8 +292,9 @@ Content-Type: application/json
 }
 
 ### 25. Penalty scored.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "PENALTY_SCORED",
@@ -280,8 +304,9 @@ Content-Type: application/json
 }
 
 ### 26. Penalty missed.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "PENALTY_MISSED",
@@ -291,8 +316,9 @@ Content-Type: application/json
 }
 
 ### 27. VAR check started. Opens a check; only one may be open at a time.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "VAR_CHECK_STARTED",
@@ -303,8 +329,9 @@ Content-Type: application/json
 ### 28. VAR decision. Closes the check opened in block 27. The decision is
 ### recorded as free text only: it emits no corrective event of its own, so
 ### cancelling a goal or awarding a penalty is a separate command.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "VAR_DECISION",
@@ -313,8 +340,9 @@ Content-Type: application/json
 }
 
 ### 29. Added time announced.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "ADDED_TIME_ANNOUNCED",
@@ -326,8 +354,9 @@ Content-Type: application/json
 ### ---------------------------------------------------------------------------
 
 ### 30. Negative minute. Expects 400 from @Min(0).
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "GOAL_SCORED",
@@ -337,8 +366,9 @@ Content-Type: application/json
 }
 
 ### 31. Missing required clubId/playerId. Expects 400 from @NotNull.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "GOAL_SCORED",
@@ -346,8 +376,9 @@ Content-Type: application/json
 }
 
 ### 32. Blank VAR decision. Expects 400 from @NotBlank.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "VAR_DECISION",
@@ -356,8 +387,9 @@ Content-Type: application/json
 }
 
 ### 33. Blank VAR check reason. Expects 400 from @NotBlank.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "VAR_CHECK_STARTED",
@@ -370,8 +402,9 @@ Content-Type: application/json
 ### ---------------------------------------------------------------------------
 
 ### 34. Decision with no check open. Expects "no var check is awaiting a decision".
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "VAR_DECISION",
@@ -381,8 +414,9 @@ Content-Type: application/json
 
 ### 35. Second check while one is open. Run block 27 first.
 ### Expects "a var check is awaiting a decision".
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "VAR_CHECK_STARTED",
@@ -393,8 +427,9 @@ Content-Type: application/json
 ### 36. Half-time whistle with a check still open. Run block 27 first.
 ### Expects "a var check is awaiting a decision". FULL_TIME and
 ### SECOND_HALF_STARTED are blocked the same way.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "FIRST_HALF_ENDED"
@@ -406,8 +441,9 @@ Content-Type: application/json
 
 ### 37. Goal scored by a playerId that exists in no players row.
 ### Expects 404 PLAYER_NOT_FOUND.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "GOAL_SCORED",
@@ -419,8 +455,9 @@ Content-Type: application/json
 ### 38. Yellow card for a player that does not exist.
 ### Expects 404 PLAYER_NOT_FOUND, so no booking is recorded against a player
 ### nobody can look up.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "YELLOW_CARD_GIVEN",
@@ -431,8 +468,9 @@ Content-Type: application/json
 
 ### 39. Substitution bringing on a player that does not exist.
 ### Expects 404 PLAYER_NOT_FOUND, so no substitution slot is burned.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "SUBSTITUTION",
@@ -444,8 +482,9 @@ Content-Type: application/json
 
 ### 40. Real player, wrong club: Maaloul plays for Sfaxien but the goal is
 ### credited to Esperance. Expects 400 PLAYER_NOT_IN_CLUB.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "GOAL_SCORED",
@@ -456,8 +495,9 @@ Content-Type: application/json
 
 ### 41. Real player, wrong club: Boualia plays for Esperance but is sent off
 ### as a Sfaxien player. Expects 400 PLAYER_NOT_IN_CLUB.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "RED_CARD_GIVEN",
@@ -469,8 +509,9 @@ Content-Type: application/json
 ### 42. Substitution mixing clubs: Onana (Sfaxien) comes on for Rafia
 ### (Esperance) under Esperance's clubId. Expects 400 PLAYER_NOT_IN_CLUB,
 ### naming Onana. Both playerOutId and playerInId are checked.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "SUBSTITUTION",
@@ -482,8 +523,9 @@ Content-Type: application/json
 
 ### 43. clubId that is in no clubs row. Expects 404 CLUB_NOT_FOUND: the club
 ### check runs before the player check.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "GOAL_SCORED",
@@ -494,8 +536,9 @@ Content-Type: application/json
 
 ### 44. Goal cancelled against a club that does not exist. Expects 404
 ### CLUB_NOT_FOUND. GOAL_CANCELED names no player, so this is the only check.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "GOAL_CANCELED",
@@ -505,8 +548,9 @@ Content-Type: application/json
 
 ### 45. Penalty awarded to a club that does not exist. Expects 404
 ### CLUB_NOT_FOUND.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "PENALTY_AWARDED",
@@ -517,8 +561,9 @@ Content-Type: application/json
 ### 46. Real club that is not in this match. Both clubs exist, so the service
 ### check passes and MatchAggregate.requireParticipant rejects it.
 ### Expects 400 CLUB_NOT_IN_MATCH. Needs a third club in the clubs table.
-POST {{host}}/matches/{{matchId}}/events
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "PENALTY_AWARDED",

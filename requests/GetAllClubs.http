@@ -1,1 +1,2 @@
+### GET /api/clubs is public.
 GET http://localhost:8080/api/clubs

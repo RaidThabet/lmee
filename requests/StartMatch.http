@@ -1,5 +1,9 @@
-POST http://localhost:8080/matches/36f9376c-b892-447e-a05a-04fa643677d9/events
+### POST /matches/{id}/events needs OPERATOR.
+@matchId = 671eaf85-f7da-48c2-9ee9-cacca507ce04
+
+POST http://localhost:8080/matches/{{matchId}}/events
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "type": "MATCH_STARTED"

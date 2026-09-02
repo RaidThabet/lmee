@@ -1,9 +1,11 @@
+### POST /matches needs ADMIN.
 POST http://localhost:8080/matches
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "scheduledKickoff": "2026-08-23T20:00:00.736Z",
   "venue": "Olympique Radès",
-  "homeTeamId": "0dffeae0-bb2e-4608-9e19-aa635e70adfc",
-  "awayTeamId": "7354f9c8-7885-4705-9fd0-e26fa6fa7997"
+  "homeTeamId": "b0e02ba6-5e99-41b9-a2b2-3b2388516e91",
+  "awayTeamId": "4da6055e-9593-474d-b4d3-d8a73e900c20"
 }

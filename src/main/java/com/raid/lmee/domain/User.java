@@ -8,7 +8,6 @@ import java.util.Set;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.UuidGenerator;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -21,10 +20,11 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 @Setter
 public class User {
 
+    /**
+     * The Keycloak subject ({@code sub} claim). Assigned, never generated locally.
+     */
     @Id
     @Column(nullable = false, updatable = false)
-    @GeneratedValue
-    @UuidGenerator
     private UUID keycloakId;
 
     @ManyToMany

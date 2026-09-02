@@ -1,6 +1,6 @@
 spring:
   config:
-    import: optional:file:../.env.dev[.properties]
+    import: file:./.env.dev[.properties]
   flyway:
     clean-disabled: true
     enabled: true
@@ -8,6 +8,11 @@ spring:
     url: ${LMEE_POSTGRES_DB}
     username: ${LMEE_POSTGRES_USER}
     password: ${LMEE_POSTGRES_PASSWORD}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI}
   jpa:
     hibernate:
       ddl-auto: validate
