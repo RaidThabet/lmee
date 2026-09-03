@@ -29,5 +29,3 @@ error:
       401: WARN
       403: WARN
       5xx: ERROR
-springdoc:
-  pathsToMatch: /, /api/**

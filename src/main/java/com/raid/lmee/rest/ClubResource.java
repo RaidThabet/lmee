@@ -3,7 +3,11 @@ package com.raid.lmee.rest;
 import com.raid.lmee.model.ClubDTO;
 import com.raid.lmee.model.IdResponseDTO;
 import com.raid.lmee.service.ClubService;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import com.raid.lmee.swagger.ApiCreateResponses;
+import com.raid.lmee.swagger.ApiDeleteResponses;
+import com.raid.lmee.swagger.ApiGetListResponses;
+import com.raid.lmee.swagger.ApiGetOneResponses;
+import com.raid.lmee.swagger.ApiUpdateResponses;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -24,23 +28,26 @@ public class ClubResource {
     }
 
     @GetMapping
+    @ApiGetListResponses
     public ResponseEntity<List<ClubDTO>> getAllClubs() {
         return ResponseEntity.ok(clubService.findAll());
     }
 
     @GetMapping("/{id}")
+    @ApiGetOneResponses
     public ResponseEntity<ClubDTO> getClub(@PathVariable(name = "id") final UUID id) {
         return ResponseEntity.ok(clubService.get(id));
     }
 
     @PostMapping
-    @ApiResponse(responseCode = "201")
+    @ApiCreateResponses
     public ResponseEntity<IdResponseDTO> createClub(@RequestBody @Valid final ClubDTO clubDTO) {
         final UUID createdId = clubService.create(clubDTO);
         return new ResponseEntity<>(new IdResponseDTO(createdId), HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
+    @ApiUpdateResponses
     public ResponseEntity<IdResponseDTO> updateClub(@PathVariable(name = "id") final UUID id,
                                                     @RequestBody @Valid final ClubDTO clubDTO) {
         clubService.update(id, clubDTO);
@@ -48,7 +55,7 @@ public class ClubResource {
     }
 
     @DeleteMapping("/{id}")
-    @ApiResponse(responseCode = "204")
+    @ApiDeleteResponses
     public ResponseEntity<Void> deleteClub(@PathVariable(name = "id") final UUID id) {
         clubService.delete(id);
         return ResponseEntity.noContent().build();

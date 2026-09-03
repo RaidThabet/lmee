@@ -17,4 +17,8 @@ error:
       "[com.raid.lmee.exception.MatchProjectionOutOfSyncException]": Stored match data is inconsistent. The incident has been logged.
 
 springdoc:
-  pathsToMatch: /, /api/**
+  # /matches/** is the match API, /api/** the reference data, / the health probe of the frontend.
+  paths-to-match: /, /api/**, /matches/**
+  swagger-ui:
+    # Keeps a pasted bearer token across a page reload, so a token has to be pasted once per session.
+    persistAuthorization: true
