@@ -1,0 +1,17 @@
+# Local terraform state and plugin cache
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+
+# Variable files hold secrets — keep them out of git
+*.tfvars
+*.tfvars.json
+.terraform.tfvars
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Plan output can contain secret values in cleartext
+*.tfplan
