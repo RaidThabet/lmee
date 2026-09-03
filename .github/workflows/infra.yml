@@ -1,0 +1,48 @@
+name: infrastructure
+on:
+  push:
+    paths:
+      - 'infra/**'
+      - '.github/workflows/infra.yml'
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+  ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  ARM_USE_OIDC: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./infra
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: '1.9.8'
+
+      - run: terraform init
+
+      - run: terraform validate
+
+      - name: Plan
+        run: |
+          terraform plan -out=tfplan \
+          -var "lmee_db_username=${{ secrets.TF_VAR_LMEE_DB_USERNAME }}" \
+          -var "lmee_db_password=${{ secrets.TF_VAR_LMEE_DB_PASSWORD }}" \
+          -var "keycloak_admin_username=${{ secrets.TF_VAR_KEYCLOAK_ADMIN_USERNAME }}" \
+          -var "keycloak_admin_password=${{ secrets.TF_VAR_KEYCLOAK_ADMIN_PASSWORD }}"
+
+      - name: Apply
+        run: terraform apply -auto-approve tfplan
+
