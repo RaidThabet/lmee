@@ -17,6 +17,10 @@ spring:
     hibernate:
       ddl-auto: validate
 
+lmee:
+  cors:
+    allowed-origin-patterns: https://zealous-dune-00b527710.5.azurestaticapps.net
+
 error:
   handling:
     exception-logging: MESSAGE_ONLY
