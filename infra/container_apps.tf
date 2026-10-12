@@ -44,8 +44,11 @@ resource "azurerm_container_app" "backend" {
   }
 
   template {
-    min_replicas = 1
-    max_replicas = 3
+    # Scale to zero when idle. The first request after a quiet period pays a
+    # cold start, which is acceptable for a demo deployment.
+    min_replicas = 0
+    # Capped at 1 so a traffic spike cannot multiply the compute bill.
+    max_replicas = 1
 
     container {
       name  = "lmee-backend"

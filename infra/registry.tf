@@ -2,7 +2,7 @@ resource "azurerm_container_registry" "acr" {
   name                = "lmeecr"
   resource_group_name = azurerm_resource_group.rg.name
   location            = azurerm_resource_group.rg.location
-  sku                 = "Standard"
+  sku                 = "Basic"
   admin_enabled       = false
 }
 
