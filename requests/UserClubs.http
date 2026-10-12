@@ -1,0 +1,21 @@
+GET http://localhost:8080/user-clubs
+Authorization: Bearer {{token}}
+###
+
+
+POST http://localhost:8080/user-clubs
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "id": "b0e02ba6-5e99-41b9-a2b2-3b2388516e91"
+}
+###
+
+DELETE http://localhost:8080/user-clubs
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "id": "b0e02ba6-5e99-41b9-a2b2-3b2388516e91"
+}
