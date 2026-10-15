@@ -88,7 +88,9 @@ public class MatchService {
                 matchId,
                 matchState.getStatus(),
                 clubName(match, true),
+                clubCrestUrl(match, true),
                 clubName(match, false),
+                clubCrestUrl(match, false),
                 matchState.getHomeScore(),
                 matchState.getAwayScore(),
                 matchState.getHomeYellows(),
@@ -107,7 +109,9 @@ public class MatchService {
                 match.getScheduledKickoff(),
                 matchState == null ? null : matchState.getStatus(),
                 clubName(match, true),
-                clubName(match, false)
+                clubCrestUrl(match, true),
+                clubName(match, false),
+                clubCrestUrl(match, false)
         );
     }
 
@@ -115,6 +119,14 @@ public class MatchService {
         return match.getMatchClubs().stream()
                 .filter(clubMatch -> Boolean.valueOf(isHome).equals(clubMatch.getIsHome()))
                 .map(clubMatch -> clubMatch.getClub().getName())
+                .findFirst()
+                .orElse(null);
+    }
+
+    private String clubCrestUrl(Match match, boolean isHome) {
+        return match.getMatchClubs().stream()
+                .filter(clubMatch -> Boolean.valueOf(isHome).equals(clubMatch.getIsHome()))
+                .map(clubMatch -> clubMatch.getClub().getCrestUrl())
                 .findFirst()
                 .orElse(null);
     }

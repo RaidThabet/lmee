@@ -4,7 +4,6 @@ import com.raid.lmee.domain.Club;
 import com.raid.lmee.exception.ClubNotFoundException;
 import com.raid.lmee.model.ClubDTO;
 import com.raid.lmee.repos.ClubRepository;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,8 +18,11 @@ public class ClubService {
 
     private final ClubRepository clubRepository;
 
-    public ClubService(final ClubRepository clubRepository) {
+    private final CrestStorage crestStorage;
+
+    public ClubService(final ClubRepository clubRepository, CrestStorage crestStorage) {
         this.clubRepository = clubRepository;
+        this.crestStorage = crestStorage;
     }
 
     public List<ClubDTO> findAll() {
@@ -39,6 +41,7 @@ public class ClubService {
     public UUID create(final ClubDTO clubDTO) {
         final Club club = new Club();
         mapToEntity(clubDTO, club);
+        club.setCrestUrl(crestStorage.resolve(clubDTO.getCrestUrl()));
         return clubRepository.save(club).getId();
     }
 
@@ -46,6 +49,9 @@ public class ClubService {
         final Club club = clubRepository.findById(id)
                 .orElseThrow(() -> new ClubNotFoundException(id));
         mapToEntity(clubDTO, club);
+        if (clubDTO.getCrestUrl() != null) {
+            club.setCrestUrl(crestStorage.resolve(club.getCrestUrl()));
+        }
         clubRepository.save(club);
     }
 
@@ -59,12 +65,14 @@ public class ClubService {
         clubDTO.setId(club.getId());
         clubDTO.setName(club.getName());
         clubDTO.setCountry(club.getCountry());
+        clubDTO.setCrestUrl(club.getCrestUrl());
         return clubDTO;
     }
 
     private Club mapToEntity(final ClubDTO clubDTO, final Club club) {
         club.setName(clubDTO.getName());
         club.setCountry(clubDTO.getCountry());
+        club.setCrestUrl(clubDTO.getCrestUrl());
         return club;
     }
 

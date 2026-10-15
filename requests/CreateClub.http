@@ -18,3 +18,7 @@ Authorization: Bearer {{token}}
   "name": "Sfaxien",
   "country": "Tunisia"
 }
+
+
+###
+GET http://localhost:8080/api/clubs

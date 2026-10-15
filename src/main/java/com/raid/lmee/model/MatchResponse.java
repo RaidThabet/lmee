@@ -8,6 +8,8 @@ public record MatchResponse(
         OffsetDateTime scheduledKickoff,
         MatchStatus status,
         String homeClubName,
-        String awayClubName
+        String homeClubCrestUrl,
+        String awayClubName,
+        String awayClubCrestUrl
 ) {
 }

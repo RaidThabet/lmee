@@ -3,6 +3,7 @@ package com.raid.lmee.rest;
 import com.raid.lmee.model.ClubDTO;
 import com.raid.lmee.model.IdResponseDTO;
 import com.raid.lmee.service.ClubService;
+import com.raid.lmee.service.CrestStorage;
 import com.raid.lmee.swagger.ApiCreateResponses;
 import com.raid.lmee.swagger.ApiDeleteResponses;
 import com.raid.lmee.swagger.ApiGetListResponses;
@@ -13,8 +14,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -23,8 +27,11 @@ public class ClubResource {
 
     private final ClubService clubService;
 
-    public ClubResource(final ClubService clubService) {
+    private final CrestStorage crestStorage;
+
+    public ClubResource(final ClubService clubService, CrestStorage crestStorage) {
         this.clubService = clubService;
+        this.crestStorage = crestStorage;
     }
 
     @GetMapping
@@ -44,6 +51,13 @@ public class ClubResource {
     public ResponseEntity<IdResponseDTO> createClub(@RequestBody @Valid final ClubDTO clubDTO) {
         final UUID createdId = clubService.create(clubDTO);
         return new ResponseEntity<>(new IdResponseDTO(createdId), HttpStatus.CREATED);
+    }
+
+    @PostMapping("/crests")
+    public Map<String, String> uploadCrest(
+            @RequestParam("file") MultipartFile crest
+    ) throws IOException {
+        return Map.of("crestUrl", crestStorage.temporaryUpload(crest));
     }
 
     @PutMapping("/{id}")

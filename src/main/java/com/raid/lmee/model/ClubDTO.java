@@ -24,4 +24,5 @@ public class ClubDTO {
     @Size(max = 255)
     private String country;
 
+    private String crestUrl;
 }

@@ -8,6 +8,7 @@ import java.util.Set;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.UuidGenerator;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -16,6 +17,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
 @Table(name = "clubs")
+@DynamicInsert
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
@@ -32,6 +34,9 @@ public class Club {
 
     @Column(nullable = false)
     private String country;
+
+    @Column(nullable = false)
+    private String crestUrl;
 
     @OneToMany(mappedBy = "club", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private Set<Player> players = new HashSet<>();

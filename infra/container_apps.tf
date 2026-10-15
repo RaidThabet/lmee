@@ -1,6 +1,6 @@
 locals {
   keycloak_app_name = "keycloak"
-  keycloak_url = "https://${local.keycloak_app_name}.${azurerm_container_app_environment.example.default_domain}"
+  keycloak_url      = "https://${local.keycloak_app_name}.${azurerm_container_app_environment.example.default_domain}"
 
   postgres_host = azurerm_postgresql_flexible_server.lmeePostgres.fqdn
 }
@@ -29,8 +29,11 @@ resource "azurerm_container_app" "backend" {
   depends_on = [azurerm_role_assignment.acr_pull]
 
   identity {
-    type         = "UserAssigned"
-    identity_ids = [azurerm_user_assigned_identity.acr_pull.id]
+    type = "UserAssigned"
+    identity_ids = [
+      azurerm_user_assigned_identity.acr_pull.id,
+      azurerm_user_assigned_identity.storage.id,
+    ]
   }
 
   registry {
@@ -78,8 +81,28 @@ resource "azurerm_container_app" "backend" {
       }
 
       env {
+        name  = "AZURE_STORAGE_ACCOUNT_NAME"
+        value = azurerm_storage_account.main.name
+      }
+
+      env {
+        name  = "AZURE_CLIENT_ID"
+        value = azurerm_user_assigned_identity.storage.client_id
+      }
+
+      env {
         name  = "KEYCLOAK_ISSUER_URI"
         value = "${local.keycloak_url}/realms/${var.keycloak_realm}"
+      }
+
+      env {
+        name  = "AZURE_STORAGE_ACCOUNT_NAME"
+        value = azurerm_storage_account.main.name
+      }
+
+      env {
+        name  = "AZURE_CLIENT_ID"
+        value = azurerm_user_assigned_identity.storage.client_id
       }
     }
   }

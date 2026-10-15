@@ -42,3 +42,7 @@ output "lmee_database_name" {
   description = "Application database on the flexible server"
   value       = azurerm_postgresql_flexible_server_database.lmee.name
 }
+
+output "default_crest_link" {
+  value = azurerm_storage_blob.default_crest.url
+}

@@ -1,4 +1,10 @@
+app:
+  crest-container: crests
+
 spring:
+  servlet:
+    multipart:
+      max-file-size: 2MB
   datasource:
     hikari:
       connection-timeout: 30000

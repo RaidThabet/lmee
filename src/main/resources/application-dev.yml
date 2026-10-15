@@ -16,6 +16,13 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+  cloud:
+    azure:
+      storage:
+        blob:
+          account-name: ${AZURE_STORAGE_ACCOUNT_NAME}
+          endpoint: https://${AZURE_STORAGE_ACCOUNT_NAME}.blob.core.windows.net
+          account-key: ${AZURE_STORAGE_ACCOUNT_KEY}
   docker:
     compose:
       lifecycle-management: start_and_stop

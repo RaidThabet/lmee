@@ -8,7 +8,7 @@
 
 ### Clubs and players below are the real rows seeded by players_seed.sql.
 ### Home: Esperance. Away: Sfaxien.
-@esperance = b0e02ba6-5e99-41b9-a2b2-3b2388516e91
+@esperance = f9edca49-fa9b-4332-b8d6-b551943902f6
 @sfaxien = 4da6055e-9593-474d-b4d3-d8a73e900c20
 
 ### Esperance players
