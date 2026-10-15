@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.UUID;
 
@@ -43,7 +45,7 @@ public class CrestStorage {
             throw new IllegalArgumentException("Incorrect crest url");
         }
 
-        String name = url.substring(prefix.length());
+        String name = URLDecoder.decode(url.substring(prefix.length()), StandardCharsets.UTF_8);
         if (!name.startsWith("temp/")) {
             return url; // already final, so nothing to move
         }
